@@ -16,27 +16,34 @@ detection_area = [0,40,400,300]
 lower_player = np.array([60,220,250])
 upper_player = np.array([70,230,255])
 
-def find_minimap_area(original_image):
+def find_minimap_area(original_image, best_rect_area, debug = False):
     """Input: BGR image. Output: estimed bounding box(x,y,w,h) of minimap area"""
     processed_img = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
     processed_img = cv2.GaussianBlur(processed_img, (3, 3), 3)
     processed_img = cv2.dilate(processed_img, (7,7))
     processed_img = cv2.Canny(processed_img, threshold1=180, threshold2=255)
-
+    coords = None
+    contourarea = 0
     im2, contours, hierarchy = cv2.findContours(processed_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if contours:
-        global best_area, detection_area
         c = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(c) >= best_area and cv2.contourArea(c) >= 100 and cv2.contourArea(c) <= 30000:
+        if cv2.contourArea(c) >= best_rect_area and cv2.contourArea(c) >= 100 and cv2.contourArea(c) <= 30000:
 
-            detection_area = cv2.boundingRect(c)
-            if detection_area[0] > 0 and detection_area[1] > 0 and detection_area[2] > 0 and detection_area[2] > 0:
+            coords = cv2.boundingRect(c)
+            if coords[0] > 0 and coords[1] > 0 and coords[2] > 0 and coords[2] > 0:
                 pass
             else:
-                detection_area = default_minimap_roi
-            best_area = cv2.contourArea(c)
+                coords = None
+            contourarea = cv2.contourArea(c)
 
-    return processed_img
+    if contourarea >= best_rect_area:
+        pass
+    else:
+        coords = None
+    if debug:
+        return coords, contourarea, processed_img
+    else:
+        return coords, contourarea
 
 
 def find_player_marker(img):
@@ -75,18 +82,30 @@ while True:
         break
     img = cv2.cvtColor(np.array(captured_img), cv2.COLOR_RGB2BGR)
     minimap_roi_img = img.copy()[default_minimap_roi[1]:default_minimap_roi[3], default_minimap_roi[0]:default_minimap_roi[2]]
-    processed_minimap_img = find_minimap_area(minimap_roi_img)
+    processed_minimap_img = find_minimap_area(minimap_roi_img, best_area, True)
+    if processed_minimap_img[0]:
+        best_area = processed_minimap_img[1]
+        detection_area = processed_minimap_img[0]
     minimap_img = minimap_roi_img.copy()
     minimap_img = minimap_img[detection_area[1]:detection_area[1]+detection_area[3], detection_area[0]:detection_area[0]+detection_area[2]]
     cv2.rectangle(minimap_roi_img, (detection_area[0], detection_area[1]), (detection_area[0]+detection_area[2], detection_area[1]+detection_area[3]),(0,255,0), 3)
+
     player_marker = find_player_marker(minimap_img)
     if player_marker:
         cv2.circle(minimap_img, player_marker, 5, (255,255,255), -1)
-    #cv2.imshow("processed", processed_minimap_img)
-    cv2.imshow("scanned window", minimap_roi_img)
+
+
+
+    cv2.imshow("processed", imutils.resize(processed_minimap_img[2], width=300))
+    cv2.imshow("ROI", imutils.resize(minimap_roi_img, width=300))
     cv2.imshow("minimap", minimap_img)
 
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    inp = cv2.waitKey(1)
+    if inp == ord('q'):
         cv2.destroyAllWindows()
         break
+    elif inp == ord("r"):
+        print("reset_area")
+        best_area = 0
+        detection_area = default_minimap_roi

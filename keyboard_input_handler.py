@@ -1,21 +1,7 @@
 import time, ctypes
 from win32api import GetKeyState
 from win32con import VK_NUMLOCK
-# IMPORTANT!!! Arrow keys are default bound to numpad 4,6,2,8. Disable numlock befure use!!!!!
-
-# http://www.flint.jp/misc/?q=dik&lang=en DirectInput Key Codes
-DIK_A = 0x1E
-DIK_Q = 0x10
-
-
-DIK_LEFT = 0xCB
-DIK_RIGHT = 0xCD
-DIK_UP = 0xC8
-DIK_DOWN = 0xD0
-DIK_ALT = 0xB8
-
-DIK_NUMLOCK = 0x45
-
+from dinput_constants import *
 
 SendInput = ctypes.windll.user32.SendInput
 # C struct redefinitions 
