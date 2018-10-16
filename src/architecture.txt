@@ -1,0 +1,15 @@
+Bot architecture
+
+Main Process
+    -Keyboard Input Process
+        keystate_manager translate_key_state() thread
+
+
+Bot loop cycle
+
+Get MS screenshot
+Image process - find minimap and player pos
+Read predefined Macro/compute next action
+Set keyboard state
+send keyboard state to Keyboard Input Process
+Rinse and Repeat
