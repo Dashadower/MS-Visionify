@@ -54,6 +54,7 @@ class StaticImageProcessor:
         self.lower_player_marker = np.array([60, 220, 250])
         self.upper_player_marker = np.array([70, 230, 255])
     def update_image(self, src=None, set_focus=True):
+        """src: rgb image data from PIL ImageGrab"""
         if src:
             rgb_img = src
         else:

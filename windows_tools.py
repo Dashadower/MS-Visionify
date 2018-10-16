@@ -8,6 +8,9 @@ def get_maplestory_window_hwnd():
 def set_window_focus(hwnd):
     win32gui.SetForegroundWindow(hwnd)
 
+def set_maplestory_focus():
+    set_window_focus(get_maplestory_window_hwnd())
+    
 def get_maplestory_screen():
     hwnd = get_maplestory_window_hwnd()
     if not hwnd:
