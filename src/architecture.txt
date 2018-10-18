@@ -13,3 +13,8 @@ Read predefined Macro/compute next action
 Set keyboard state
 send keyboard state to Keyboard Input Process
 Rinse and Repeat
+
+
+IMPORTANT IMFORMATION:
+minimap to game screen x ratio:
+about 30:495 = ~1:16

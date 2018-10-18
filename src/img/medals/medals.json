@@ -1,0 +1,9 @@
+{
+  "medal1.png": {
+    "name": "우르스 격파왕",
+    "filename": "medal1.png",
+    "offset_x": 50,
+    "offset_y": -80
+  },
+  "imgdir": "img/medals"
+}

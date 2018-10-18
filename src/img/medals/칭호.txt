@@ -1,0 +1,2 @@
+FileName Name Offset
+medal1.png 우르스 격파왕 50,-80
