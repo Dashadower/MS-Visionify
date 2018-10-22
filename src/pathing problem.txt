@@ -1,0 +1,24 @@
+Automatic platform pathing methods
+
+Currently known data:
+- Player minimap coordinates
+- Platform start, end coordinates
+
+What we want to achieve:
+Given current player coordinates and platform start, end coordinates, compute a way to reach
+platform A to platform B
+
+Method 1 - Standard jumps between platforms
+1. Compute Euclidean Square distance between all platform starts and ends
+2. If distance between two points is less that jump distance(to be determined), map two each coordinates movable by jumps
+
+Method 2 - Utilizing vertical super jump
+1. Find vertical overlaps of 2 different platforms.
+2. Calculate vertical distance between platform
+3. If distance is less that super jump range, map as reachable by superjump/fall
+
+Method 3 - Utilizing ladders/ropes
+
+
+Method 4 - Utilizing glide in large platforms
+
