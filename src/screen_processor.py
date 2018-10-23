@@ -31,6 +31,8 @@ class MapleScreenCapturer:
         """Returns Maplestory window screenshot handle(not np.array!)
         : param set_focus boolean : True if MapleStory window is to be focusesd before capture, False if not
         : return : returns Imagegrab of screen"""
+        if not hwnd:
+            hwnd = self.ms_get_screen_hwnd()
         if not rect:
             rect = self.ms_get_screen_rect(hwnd)
         if set_focus:

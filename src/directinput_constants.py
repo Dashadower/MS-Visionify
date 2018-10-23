@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # IMPORTANT!!! Arrow keys are default bound to numpad 4,6,2,8. Disable numlock befure use!!!!!
-
+# If keyboard input does not work, run as admin
 # http://www.flint.jp/misc/?q=dik&lang=en DirectInput Key Codes
 
 

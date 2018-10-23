@@ -14,6 +14,8 @@ class PlayerController:
         self.busy = False
         self.mode = None
 
+        self.finemode_limit = 5
+
     def horizontal_move_goal(self, goal_x, blocking=False, pos_func=None, pos_func_args=None):
         if blocking:
             if goal_x - self.x > 0:
@@ -24,16 +26,37 @@ class PlayerController:
                 # need to go left:
                 mode = "l"
                 self.key_mgr._direct_press(DIK_LEFT)
+            finemode = False
+            if mode == "r":
+                if self.x >= goal_x - self.finemode_limit:
+                    finemode = True
+            elif mode == "l":
+                if self.x <= goal_x + self.finemode_limit:
+                    finemode = True
+
             while True:
                 pos_func.update_image()
                 self.x = pos_func.find_player_minimap_marker(pos_func_args)[0]
+                if finemode:
+                    if mode == "r":
+                        self.key_mgr._direct_press(DIK_RIGHT)
+                        time.sleep(0.03)
+                        self.key_mgr._direct_release(DIK_RIGHT)
+                    elif mode == "l":
+                        self.key_mgr._direct_press(DIK_LEFT)
+                        time.sleep(0.03)
+                        self.key_mgr._direct_release(DIK_LEFT)
+                    time.sleep(0.1)
                 if mode == "r":
-                    if self.x >= goal_x-7:
+                    if self.x >= goal_x-self.finemode_limit-1:
+                        finemode = True
+                    if self.x >= goal_x:
                         break
                 elif mode == "l":
-                    if self.x <= goal_x+7:
+                    if self.x <= goal_x+self.finemode_limit+1:
+                        finemode = True
+                    if self.x <= goal_x:
                         break
-            print("horizontal move finished")
             self.key_mgr.reset()
 
         else:
@@ -55,7 +78,7 @@ class PlayerController:
         self.key_mgr._direct_press(DIK_ALT)
         time.sleep(0.1)
         self.key_mgr._direct_release(DIK_ALT)
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.key_mgr._direct_press(DIK_UP)
         time.sleep(0.01)
         self.key_mgr._direct_release(DIK_UP)
