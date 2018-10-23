@@ -18,7 +18,7 @@ Method 2 - Utilizing vertical super jump
 3. If distance is less that super jump range, map as reachable by superjump/fall
 
 Method 3 - Utilizing ladders/ropes
-
+1. 
 
 Method 4 - Utilizing glide in large platforms
 

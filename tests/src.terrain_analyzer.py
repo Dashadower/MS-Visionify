@@ -29,7 +29,7 @@ while True:
         if pathextractor.ladders:
             for ladder in pathextractor.ladders:
                 cv2.line(cropped_img, ladder[0], ladder[1], (0,0,255), 2)
-        cropped_img = imutils.resize(cropped_img, width= 500)
+        cropped_img = imutils.resize(cropped_img, width=500)
         cv2.imshow("test",cropped_img)
 
     inp = cv2.waitKey(1)

@@ -18,7 +18,12 @@ class MonsterTemplateDetector:
         self.template_calibrated_xcoords = self.mob_data[template_img_filename]["offset_x"]
         self.template_calibrated_ycoords = self.mob_data[template_img_filename]["offset_y"]
 
-    def find(self, src_gray_img_arr, search_threshold=0.8):
+    def find(self, src_gray_img_arr, search_threshold=0.8, override_error=True):
+        if override_error:
+            if src_gray_img_arr.shape[0] < self.template.shape[0] or src_gray_img_arr.shape[1] < self.template.shape[1]:
+                return 0
+        else:
+            assert src_gray_img_arr.shape[0] > self.template.shape[0] and src_gray_img_arr.shape[1] > self.template.shape[1], "Search image is smaller than template!"
         detected_points = []
         template_matcher = cv2.matchTemplate(src_gray_img_arr, self.template, cv2.TM_CCOEFF_NORMED)
         loc = np.where(template_matcher >= search_threshold)
@@ -32,3 +37,4 @@ class MonsterTemplateDetector:
                 (point[0] + self.template_calibrated_xcoords, point[1] + self.template_calibrated_ycoords))
 
         return detected_points
+

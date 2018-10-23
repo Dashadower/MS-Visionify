@@ -61,12 +61,13 @@ class KeyboardInputManager:
     """Manage keyboard input by using 2 states
     state 0: key is not pressed and up
     state 1: key is down and pressed"""
-    def __init__(self):
+    def __init__(self, debug=False):
         """dict key_state : list of keycodes with either 0 or 1 as value. Indicates whether the use wants to change the value of keycodes
         dict actual_key_state: list of keycodes with states as value where the key is actually pressed.
          Differences between this dict and key_state can be used to determine whether the key should be pressed or released"""
         self.key_state = {}
         self.actual_key_state = {}
+        self.debug = debug
 
     def get_key_state(self, key_code=None):
         if key_code:
@@ -98,9 +99,20 @@ class KeyboardInputManager:
                     ReleaseKey(keycode)
                     self.actual_key_state[keycode] = 0
 
+    def _direct_press(self, key_code):
+        PressKey(key_code)
+        self.actual_key_state[key_code] = 1
+
+    def _direct_release(self, key_code):
+        ReleaseKey(key_code)
+        self.actual_key_state[key_code] = 0
+
+    def reset(self):
+        self.key_state = {}
+        self.translate_key_state()
 
 class AdvancedThreadedKeyboardHandler(KeyboardInputManager):
     def __init__(self, tickrate=0.01):
         super().__init__()
-    
+        pass
 

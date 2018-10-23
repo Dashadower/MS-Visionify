@@ -27,10 +27,12 @@ class MapleScreenCapturer:
     def ms_get_screen_rect(self, hwnd):
         return win32gui.GetWindowRect(hwnd)
 
-    def capture(self, set_focus=True):
-        """Returns RGB MapleStory screen capture"""
-        hwnd = self.ms_get_screen_hwnd()
-        rect = self.ms_get_screen_rect(hwnd)
+    def capture(self, set_focus=True, hwnd=None, rect=None):
+        """Returns Maplestory window screenshot handle(not np.array!)
+        : param set_focus boolean : True if MapleStory window is to be focusesd before capture, False if not
+        : return : returns Imagegrab of screen"""
+        if not rect:
+            rect = self.ms_get_screen_rect(hwnd)
         if set_focus:
             win32gui.SetForegroundWindow(hwnd)
             time.sleep(0.1)
@@ -51,14 +53,18 @@ class StaticImageProcessor:
         self.processed_img = None
         self.minimap_area = 0
         self.default_minimap_scan_area = [0, 40, 400, 300]
-        self.lower_player_marker = np.array([60, 220, 250])
-        self.upper_player_marker = np.array([70, 230, 255])
-    def update_image(self, src=None, set_focus=True):
+        self.lower_player_marker = np.array([67, 220, 254])
+        self.upper_player_marker = np.array([69, 222, 255])
+        self.hwnd = self.img_handle.ms_get_screen_hwnd()
+        self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+    def update_image(self, src=None, set_focus=True, update_rect=False):
         """src: rgb image data from PIL ImageGrab"""
         if src:
             rgb_img = src
         else:
-            rgb_img = self.img_handle.capture(set_focus)
+            if update_rect:
+                self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+            rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.rect)
             if not rgb_img:
                 assert self.rgb_img != 0, "self.img_handle did not return img"
         self.rgb_img = np.array(rgb_img)
