@@ -108,7 +108,9 @@ class KeyboardInputManager:
         self.actual_key_state[key_code] = 0
 
     def reset(self):
-        self.key_state = {}
+        for keycode, state in self.key_state.items():
+            if keycode in self.actual_key_state.keys():
+                self.key_state[keycode] = 0
         self.translate_key_state()
 
 class AdvancedThreadedKeyboardHandler(KeyboardInputManager):

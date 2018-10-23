@@ -44,7 +44,7 @@ while True:
         pathextractor.reset()
 
 print("path recording done")
-time.sleep(2)
+time.sleep(0.5)
 cplatform = None
 while True:
     cpos = scrp.find_player_minimap_marker(area)
