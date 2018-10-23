@@ -1,6 +1,7 @@
 
 import cv2, json, os
 
+
 class PlayerMedalDetector:
     """Time consuming matchTemplate based mob detector. Uses reference images to compare image screen"""
     def __init__(self):
@@ -16,5 +17,5 @@ class PlayerMedalDetector:
     def find(self, src_gray_img_arr):
         template_matcher = cv2.matchTemplate(src_gray_img_arr, self.template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(template_matcher)
-        return (max_loc[0]+self.template_calibrated_xcoords, max_loc[1]+self.template_calibrated_ycoords)
+        return max_loc[0]+self.template_calibrated_xcoords, max_loc[1]+self.template_calibrated_ycoords
 

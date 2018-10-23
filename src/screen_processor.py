@@ -59,6 +59,7 @@ class StaticImageProcessor:
         self.upper_player_marker = np.array([69, 222, 255])
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
         self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+
     def update_image(self, src=None, set_focus=True, update_rect=False):
         """src: rgb image data from PIL ImageGrab"""
         if src:
@@ -78,7 +79,7 @@ class StaticImageProcessor:
 
     def get_minimap_rect(self):
         cropped = self.bgr_img[self.default_minimap_scan_area[1]:self.default_minimap_scan_area[3], self.default_minimap_scan_area[0]:self.default_minimap_scan_area[2]]
-        blurred_img = cv2.GaussianBlur(self.bgr_img, (3,3), 3)
+        blurred_img = cv2.GaussianBlur(cropped, (3,3), 3)
         morphed_img = cv2.erode(blurred_img, (7,7))
         canny = cv2.Canny(morphed_img, threshold1=180, threshold2=255)
 
