@@ -70,7 +70,7 @@ while True:
         time.sleep(1)
         if cpos[0] < solution[1][0] or cpos[0] > solution[2][0]:
             player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True, pos_func=scrp, pos_func_args=area)
-        print("hori done")
+        print("horizontal movement done")
         time.sleep(0.5)
         if solution[3] == "jmpl":
             player_mgr.jumpl()

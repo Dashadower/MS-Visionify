@@ -48,12 +48,12 @@ class PlayerController:
                         self.key_mgr._direct_release(DIK_LEFT)
                     time.sleep(0.1)
                 if mode == "r":
-                    if self.x >= goal_x-self.finemode_limit-1:
+                    if self.x >= goal_x-self.finemode_limit:
                         finemode = True
                     if self.x >= goal_x:
                         break
                 elif mode == "l":
-                    if self.x <= goal_x+self.finemode_limit+1:
+                    if self.x <= goal_x+self.finemode_limit:
                         finemode = True
                     if self.x <= goal_x:
                         break
