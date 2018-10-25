@@ -71,7 +71,8 @@ while True:
         SetForegroundWindow(wincap.ms_get_screen_hwnd())
         time.sleep(1)
         if cpos[0] < solution[1][0] or cpos[0] > solution[2][0]:
-            player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True, pos_func=scrp, pos_func_args=area)
+            #player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True, pos_func=scrp, pos_func_args=area)
+            player_mgr.quadratic_platform_jump(solution[0], solution[1][0], solution[2][0])
         print("horizontal movement done")
         time.sleep(0.5)
         if solution[3] == "jmpl":

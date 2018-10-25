@@ -1,6 +1,6 @@
 from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT
-import time
-
+import time, math
+# simple jump vertical distance: about 6 pixels
 
 class PlayerController:
     def __init__(self, key_mgr):
@@ -16,6 +16,64 @@ class PlayerController:
 
         self.finemode_limit = 5
         self.horizontal_goal_offset = 2
+
+        self.horizontal_jump_distance = 8
+        self.horizontal_jump_height = 7
+    def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
+        """Quadratic jump curve simulation
+        : param coord_x : x input in function f(x)
+        : param start_x : start x coordinate of jump
+        : param start_y : start y coordinate of jump
+        : param orient : direction of jump, either jmpr or jmpl"""
+        if orient == "jmpr":
+            y = 0.4 * ((coord_x - (start_x+self.horizontal_jump_distance/2)) ** 2) + start_y - self.horizontal_jump_height
+            return y
+        elif orient == "jmpl":
+            y = 0.4 * ((coord_x - (start_x-self.horizontal_jump_distance/2)) ** 2) + start_y - self.horizontal_jump_height
+            return y
+
+        return 0
+
+    def quadratic_platform_jump(self, goal_platform, jmp_range_start, jmp_range_end):
+        """Use quadratic to simulate jump and determine x coordinate required to move
+        : param goal_coord : tuple((x,y), (x,y)) of goal platform start and end
+        : param jmp_range_start : tuple(x,y) of minimum movable current platform
+        : param jmp_range_end : tuple(x,y) of maximum movable current platform"""
+
+        # to determine which end we are going to use as goal coordinate, calculate SED of each point
+        d1 = (self.x-goal_platform[0][0]) ** 2
+        d2 = (self.x-goal_platform[1][0]) ** 2
+        if d1 < d2:
+            goal_x, goal_y = goal_platform[0][0], goal_platform[0][1]
+        else:
+            goal_x, goal_y = goal_platform[1][0], goal_platform[1][1]
+
+        min_platform_x = min(jmp_range_start, jmp_range_end)
+        max_platform_x = max(jmp_range_start, jmp_range_end)
+
+        if goal_x - self.x > 0:
+            mode = "jmpr"
+        elif goal_x - self.x < 0:
+            mode = "jmpl"
+
+        minimum_jmp_x = None
+        print("quadratic: current location: %d %d"%(self.x, self.y), "destination %d %d"%(goal_x, goal_y))
+        if mode == "jmpl":
+            for x in range(self.x-1, min_platform_x, -1):
+                platform_function_height = int(self.calculate_jump_curve(goal_x, self.x, self.y, mode))
+                print("y coord at x coord %d: %d"%(x, platform_function_height))
+                if platform_function_height < goal_y - 2 and platform_function_height != 0 and platform_function_height > 0:
+                    minimum_jmp_x = x
+                    break
+        elif mode == "jmpr":
+            for x in range(self.x+1, max_platform_x):
+                platform_function_height = int(self.calculate_jump_curve(goal_x, self.x, self.y, mode))
+                print("y coord at x coord %d: %d" % (x, platform_function_height))
+                if platform_function_height < goal_y - 2 and platform_function_height != 0 and platform_function_height > 0:
+                    minimum_jmp_x = x
+                    break
+        print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
+        self.horizontal_move_goal(minimum_jmp_x)
 
     def horizontal_move_goal(self, goal_x, blocking=False, pos_func=None, pos_func_args=None):
         if blocking:
@@ -133,3 +191,6 @@ class PlayerController:
                 self.busy = False
 
 
+"""dt = PlayerController("asf")
+for x in range(47, 64):
+    print(dt.calculate_jump_curve(72, 64, 52, "jmpr"))"""
