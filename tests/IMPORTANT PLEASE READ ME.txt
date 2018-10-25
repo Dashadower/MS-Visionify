@@ -1,0 +1,3 @@
+problem with key input:
+sometimes the ALT key used for jumping/dropping gets stuck or not released and causes the macro to get st uck
+CHECK ALL PARTS WHICH USE ALT KEYS!!!

@@ -7,9 +7,9 @@ from win32gui import SetForegroundWindow
 wcap = MapleScreenCapturer()
 hwnd = wcap.ms_get_screen_hwnd()
 kbd_mgr = KeyboardInputManager()
-player_cntrlr = PlayerController(kbd_mgr)
+player_cntrlr = PlayerController(kbd_mgr, None)
 
 SetForegroundWindow(hwnd)
 time.sleep(0.5)
-player_cntrlr.dbljump_max()
+player_cntrlr.jumpr_glide()
 

@@ -81,6 +81,11 @@ class KeyboardInputManager:
     def set_key_state(self, key_code, value):
         self.key_state[key_code] = value
 
+    def single_press(self, key_code):
+        self._direct_press(key_code)
+        time.sleep(0.03)
+        self._direct_release(key_code)
+
     def translate_key_state(self):
         for keycode, state in self.key_state.items():
             if keycode in self.actual_key_state.keys():

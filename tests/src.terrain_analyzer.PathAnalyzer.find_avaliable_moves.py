@@ -3,13 +3,14 @@ from src.terrain_analyzer import PathAnalyzer
 from src.keystate_manager import KeyboardInputManager
 from src.player_controller import PlayerController
 from win32gui import SetForegroundWindow
-import cv2, imutils, time
-
+import cv2, imutils, time, random, os
+from src.directinput_constants import DIK_A, DIK_Q
 keybd_mgr = KeyboardInputManager()
-player_mgr = PlayerController(keybd_mgr)
+
 wincap = MapleScreenCapturer()
 scrp = StaticImageProcessor(wincap)
 scrp.update_image()
+player_mgr = PlayerController(keybd_mgr, scrp)
 area = scrp.get_minimap_rect()
 pathextractor = PathAnalyzer()
 
@@ -43,45 +44,86 @@ while True:
         scrp.reset_minimap_area()
         area = scrp.get_minimap_rect()
         pathextractor.reset()
-
+    elif inp == ord("s"):
+        pathextractor.save()
+if os.path.exists("mapdata.platform"):
+    if input("map data exists. load that instead?(y if yes)") == "y":
+        pathextractor.load()
 print("path recording done")
 time.sleep(0.5)
+SetForegroundWindow(wincap.ms_get_screen_hwnd())
+time.sleep(0.5)
 cplatform = None
+last_visited = None
+exceed_count = 0
 while True:
+    print("-" * 10)
     scrp.update_image(set_focus=False)
     cpos = scrp.find_player_minimap_marker(area)
-    player_mgr.update(cpos)
-    print("current minimap coord", cpos)
-    for platform in pathextractor.platforms:
-        if cpos[0] <= platform[1][0] and cpos[0] >= platform[0][0] and cpos[1] == platform[1][1]:
-            cplatform = platform
-            break
-    if cplatform:
-        print("current platform:", cplatform)
-        solutions = pathextractor.find_available_moves(cplatform)
-        print("avaliable solutions:", solutions)
-        choice = input("select index to move:")
-        if not choice.isdigit():
-            print("wrong selection")
-            continue
+    if cpos:
+        player_mgr.update(cpos)
+        print("current minimap coord", cpos)
+        for platform in pathextractor.platforms:
+            if cpos[0] <= platform[1][0] and cpos[0] >= platform[0][0] and cpos[1] == platform[1][1]:
+                cplatform = platform
+                break
+        if cplatform:
 
-        solution = solutions[int(choice)]
-        print("moving to", solution[0])
-        time.sleep(0.5)
-        SetForegroundWindow(wincap.ms_get_screen_hwnd())
-        time.sleep(1)
-        if cpos[0] < solution[1][0] or cpos[0] > solution[2][0]:
-            #player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True, pos_func=scrp, pos_func_args=area)
-            player_mgr.quadratic_platform_jump(solution[0], solution[1][0], solution[2][0])
-        print("horizontal movement done")
-        time.sleep(0.5)
-        if solution[3] == "jmpl":
-            player_mgr.jumpl()
-        elif solution[3] == "jmpr":
-            player_mgr.jumpr()
-        elif solution[3] == "drop":
-            player_mgr.drop()
-        elif solution[3] == "dbljmp":
-            player_mgr.dbljump_max()
-        time.sleep(2)
+            print("current platform:", cplatform)
+            solutions = pathextractor.find_available_moves(cplatform)
+            other_solutions = []
+            if last_visited:
+                if len(solutions) > 1:
+                    for p in solutions:
+                        if p[0] == last_visited:
+                            pass
+                        else:
+                            other_solutions.append(p)
+                else:
+                    other_solutions = solutions
+            elif not last_visited:
+                other_solutions = solutions
+            print("avaliable solutions:", other_solutions)
+            print("last visited:", last_visited)
+            solution = random.choice(other_solutions)
+            last_visited = cplatform
+
+            print("moving to", solution[0])
+            #SetForegroundWindow(wincap.ms_get_screen_hwnd())
+            time.sleep(0.1)
+            if cpos[0] < solution[1][0] or cpos[0] > solution[2][0]:
+                cpos = scrp.find_player_minimap_marker(area)
+                player_mgr.update(cpos)
+                keybd_mgr.reset()
+                time.sleep(0.1)
+                player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True)
+                #player_mgr.quadratic_platform_jump(solution[0], solution[1][0], solution[2][0], area)
+            print("horizontal movement done")
+            time.sleep(0.2)
+
+            if solution[3] == "jmpl":
+                player_mgr.jumpl_glide()
+                time.sleep(0.5)
+            elif solution[3] == "jmpr":
+                player_mgr.jumpr_glide()
+                time.sleep(0.5)
+            elif solution[3] == "drop":
+                player_mgr.drop()
+                time.sleep(1)
+            elif solution[3] == "dbljmp":
+                player_mgr.dbljump_max()
+                time.sleep(1)
+
+            keybd_mgr.single_press(DIK_A)
+            exceed_count += 1
+            if exceed_count > 18:
+                keybd_mgr.single_press(DIK_Q)
+                exceed_count = 0
+
+            time.sleep(0.5)
+
+        else:
+            print("failed to find platform. please reposition")
+    else:
+        print("failed to read minimap")
 

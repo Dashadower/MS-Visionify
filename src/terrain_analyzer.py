@@ -1,4 +1,4 @@
-import math
+import math, pickle, os
 
 class PathAnalyzer:
     def __init__(self):
@@ -18,7 +18,17 @@ class PathAnalyzer:
         self.minimum_ladder_length = 5
 
         self.doublejump_height = 31  # total absolute jump height is about 31, but take account platform size
-        self.jump_range = 12  # horizontal jump distance is about 9~10
+        self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
+        self.dbljump_range = 15 # not in use
+
+    def save(self, filename="mapdata.platform"):
+        with open(filename, "wb") as f:
+            pickle.dump(self.platforms, f)
+
+    def load(self, filename="mapdata.platfor"):
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                self.platforms = pickle.load(f)
 
     def input(self, inp_x, inp_y):
         converted_tuple = (inp_x, inp_y)

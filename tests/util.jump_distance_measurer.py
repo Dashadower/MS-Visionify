@@ -20,6 +20,7 @@ end_y = None
 last_coords = None
 is_recording = False
 min_y = 10000
+
 while True:
     scrp.update_image(set_focus=False)
 
@@ -55,6 +56,7 @@ while True:
 
 print(jmp_coords)
 print("y coord movement:", abs(start_y-min_y))
+print("x coord movement:", abs(start_x-end_x))
 """start_x = 91
 start_y = 34
 end_x = 101

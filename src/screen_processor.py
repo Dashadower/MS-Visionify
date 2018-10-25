@@ -53,6 +53,7 @@ class StaticImageProcessor:
         self.gray_img = None
         self.processed_img = None
         self.minimap_area = 0
+        self.minimap_rect = None
         self.default_minimap_scan_area = [0, 40, 400, 300]
         self.lower_player_marker = np.array([67, 220, 254])  # B G R
         self.upper_player_marker = np.array([69, 222, 255])
@@ -92,6 +93,7 @@ class StaticImageProcessor:
                     minimap_coords = [minimap_coords[0], minimap_coords[1], minimap_coords[2], minimap_coords[3]]
                     minimap_coords[0] += self.default_minimap_scan_area[0]
                     minimap_coords[1] += self.default_minimap_scan_area[1]
+                    self.minimap_rect = minimap_coords
                     return minimap_coords
                 else:
                     pass
