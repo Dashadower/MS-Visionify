@@ -15,17 +15,16 @@ class PlayerController:
         self.mode = None
 
         self.finemode_limit = 5
+        self.horizontal_goal_offset = 2
 
     def horizontal_move_goal(self, goal_x, blocking=False, pos_func=None, pos_func_args=None):
         if blocking:
             if goal_x - self.x > 0:
                 # need to go right:
                 mode = "r"
-                self.key_mgr._direct_press(DIK_RIGHT)
             else:
                 # need to go left:
                 mode = "l"
-                self.key_mgr._direct_press(DIK_LEFT)
             finemode = False
             if mode == "r":
                 if self.x >= goal_x - self.finemode_limit:
@@ -33,7 +32,15 @@ class PlayerController:
             elif mode == "l":
                 if self.x <= goal_x + self.finemode_limit:
                     finemode = True
-
+            if not finemode:
+                if goal_x - self.x > 0:
+                    # need to go right:
+                    mode = "r"
+                    self.key_mgr._direct_press(DIK_RIGHT)
+                else:
+                    # need to go left:
+                    mode = "l"
+                    self.key_mgr._direct_press(DIK_LEFT)
             while True:
                 pos_func.update_image()
                 self.x = pos_func.find_player_minimap_marker(pos_func_args)[0]
@@ -50,12 +57,12 @@ class PlayerController:
                 if mode == "r":
                     if self.x >= goal_x-self.finemode_limit:
                         finemode = True
-                    if self.x >= goal_x:
+                    if self.x >= goal_x-self.horizontal_goal_offset:
                         break
                 elif mode == "l":
                     if self.x <= goal_x+self.finemode_limit:
                         finemode = True
-                    if self.x <= goal_x:
+                    if self.x <= goal_x-self.horizontal_goal_offset:
                         break
             self.key_mgr.reset()
 

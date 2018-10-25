@@ -23,8 +23,9 @@ while True:
     if playerpos:
         pathextractor.input(playerpos[0], playerpos[1])
 
-    cropped_img = cv2.cvtColor(scrp.rgb_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]], cv2.COLOR_BGR2RGB)
-
+    cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
+    if playerpos:
+        cv2.circle(cropped_img, playerpos, 5, (0,255,0), -1)
     if pathextractor.platforms:
         for platform in pathextractor.platforms:
             cv2.line(cropped_img, platform[0], platform[1], (0, 255, 0), 1)
@@ -54,6 +55,7 @@ while True:
     for platform in pathextractor.platforms:
         if cpos[0] <= platform[1][0] and cpos[0] >= platform[0][0] and cpos[1] == platform[1][1]:
             cplatform = platform
+            break
     if cplatform:
         print("current platform:", cplatform)
         solutions = pathextractor.find_available_moves(cplatform)

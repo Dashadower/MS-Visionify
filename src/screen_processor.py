@@ -48,14 +48,13 @@ class MapleScreenCapturer:
 class StaticImageProcessor:
     def __init__(self, img_handle=None):
         self.img_handle = img_handle
-        self.rgb_img = None
         self.bgr_img = None
         self.bin_img = None
         self.gray_img = None
         self.processed_img = None
         self.minimap_area = 0
         self.default_minimap_scan_area = [0, 40, 400, 300]
-        self.lower_player_marker = np.array([67, 220, 254])
+        self.lower_player_marker = np.array([67, 220, 254])  # B G R
         self.upper_player_marker = np.array([69, 222, 255])
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
         self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
@@ -70,15 +69,13 @@ class StaticImageProcessor:
             rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.rect)
             if not rgb_img:
                 assert self.rgb_img != 0, "self.img_handle did not return img"
-        self.rgb_img = np.array(rgb_img)
-        self.convert_image()
-
-    def convert_image(self):
-        self.bgr_img = cv2.cvtColor(self.rgb_img, cv2.COLOR_RGB2BGR)
+        self.bgr_img = cv2.cvtColor(np.array(rgb_img), cv2.COLOR_RGB2BGR)
         self.gray_img = cv2.cvtColor(self.bgr_img, cv2.COLOR_BGR2GRAY)
 
+
+
     def get_minimap_rect(self):
-        cropped = self.bgr_img[self.default_minimap_scan_area[1]:self.default_minimap_scan_area[3], self.default_minimap_scan_area[0]:self.default_minimap_scan_area[2]]
+        cropped = self.gray_img[self.default_minimap_scan_area[1]:self.default_minimap_scan_area[3], self.default_minimap_scan_area[0]:self.default_minimap_scan_area[2]]
         blurred_img = cv2.GaussianBlur(cropped, (3,3), 3)
         morphed_img = cv2.erode(blurred_img, (7,7))
         canny = cv2.Canny(morphed_img, threshold1=180, threshold2=255)
@@ -87,11 +84,18 @@ class StaticImageProcessor:
 
         if contours:
             biggest_contour = max(contours, key = cv2.contourArea)
-            if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area:
+            if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= 30000:
                 minimap_coords = cv2.boundingRect(biggest_contour)
-                contour_area = cv2.contourArea(biggest_contour)
-                self.minimap_area = contour_area
-                return minimap_coords
+                if minimap_coords[0] > 0 and minimap_coords[1] > 0 and minimap_coords[2] > 0 and minimap_coords[2] > 0:
+                    contour_area = cv2.contourArea(biggest_contour)
+                    self.minimap_area = contour_area
+                    minimap_coords = [minimap_coords[0], minimap_coords[1], minimap_coords[2], minimap_coords[3]]
+                    minimap_coords[0] += self.default_minimap_scan_area[0]
+                    minimap_coords[1] += self.default_minimap_scan_area[1]
+                    return minimap_coords
+                else:
+                    pass
+
 
         return 0
 
