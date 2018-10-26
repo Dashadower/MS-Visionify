@@ -27,6 +27,8 @@ numbers = {
     0:DIK_0}
 
 DIK_A = 0x1E
+DIK_D = 0x20
+DIK_F = 0x21
 DIK_Q = 0x10
 
 
