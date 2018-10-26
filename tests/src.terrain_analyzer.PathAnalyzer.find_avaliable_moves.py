@@ -56,10 +56,12 @@ while True:
         area = scrp.get_minimap_rect()
         pathextractor.reset()
     elif inp == ord("s"):
-        pathextractor.save()
+        pathextractor.save(minimap_roi=area)
 if os.path.exists("mapdata.platform"):
     if input("map data exists. load that instead?(y if yes)") == "y":
-        pathextractor.load()
+        mcoords = pathextractor.load()
+        if mcoords:
+            area = mcoords
 print("path recording done")
 time.sleep(0.5)
 SetForegroundWindow(wincap.ms_get_screen_hwnd())
