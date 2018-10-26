@@ -62,7 +62,8 @@ if os.path.exists("mapdata.platform"):
         mcoords = pathextractor.load()
         if mcoords:
             area = mcoords
-print("path recording done")
+        print("loaded platform data:", pathextractor.platforms)
+print("path processing done")
 time.sleep(0.5)
 SetForegroundWindow(wincap.ms_get_screen_hwnd())
 time.sleep(0.5)
@@ -71,6 +72,7 @@ last_visited = None
 exceed_count = 0
 last_thousand_sword_time = time.time()
 while True:
+    cplatform = None
     print("-" * 10)
     scrp.update_image(set_focus=False)
     cpos = scrp.find_player_minimap_marker(area)
@@ -108,7 +110,7 @@ while True:
             if cpos[0] < solution[1][0] or cpos[0] > solution[2][0]:
                 cpos = scrp.find_player_minimap_marker(area)
                 player_mgr.update(cpos)
-                keybd_mgr.reset()
+                #keybd_mgr.reset()
                 time.sleep(0.1)
                 player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True)
                 #player_mgr.quadratic_platform_jump(solution[0], solution[1][0], solution[2][0], area)
@@ -130,7 +132,7 @@ while True:
 
 
 
-            if abs(last_thousand_sword_time-time.time()) >= 9:
+            if abs(last_thousand_sword_time-time.time()) >= 15:
                 keybd_mgr.single_press(DIK_F)
                 last_thousand_sword_time = time.time()
                 exceed_count += 5
@@ -139,14 +141,17 @@ while True:
                 keybd_mgr.single_press(DIK_A)
                 exceed_count += 1
                 time.sleep(0.1)
+            
             if exceed_count > 18:
                 keybd_mgr.single_press(DIK_Q)
+                time.sleep(1)
                 exceed_count = 0
 
             if random.randrange(1, 6) == 1:
                 keybd_mgr.single_press(DIK_D)
+                print("randomized")
             time.sleep(0.1)
-            keybd_mgr.reset()
+            #keybd_mgr.reset()
             time.sleep(0.4)
 
         else:
