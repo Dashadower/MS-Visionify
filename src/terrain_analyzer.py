@@ -25,7 +25,7 @@ class PathAnalyzer:
         with open(filename, "wb") as f:
             pickle.dump({"platforms" : self.platforms, "minimap" : minimap_roi}, f)
 
-    def load(self, filename="mapdata.platfor"):
+    def load(self, filename="mapdata.platform"):
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 data = pickle.load(f)

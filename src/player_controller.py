@@ -158,7 +158,7 @@ class PlayerController:
             self.image_handler.update_image()
             self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)
             if not self.x:
-                continue
+                assert 1 == 0, "horizontal_move goal: failed to recognize coordinates"
             if self.x:
                 self.x = self.x[0]
             if mode == "r":
@@ -169,12 +169,6 @@ class PlayerController:
                 if self.x <= goal_x+self.horizontal_goal_offset:
                     self.key_mgr._direct_release(DIK_LEFT)
                     break
-            if goal_x - self.x > 0:
-                # need to go right:
-                mode = "r"
-            elif goal_x - self.x < 0:
-                # need to go left:
-                mode = "l"
         self.key_mgr.reset()
 
 
@@ -207,8 +201,9 @@ class PlayerController:
         self.key_mgr._direct_press(DIK_LEFT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_ALT)
-        time.sleep(0.3)
+        time.sleep(0.15)
         self.key_mgr._direct_release(DIK_ALT)
+        time.sleep(0.1)
         self.key_mgr._direct_press(DIK_ALT)
         time.sleep(0.2)
         self.key_mgr._direct_release(DIK_ALT)
@@ -228,8 +223,9 @@ class PlayerController:
         self.key_mgr._direct_press(DIK_RIGHT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_ALT)
-        time.sleep(0.3)
+        time.sleep(0.15)
         self.key_mgr._direct_release(DIK_ALT)
+        time.sleep(0.1)
         self.key_mgr._direct_press(DIK_ALT)
         time.sleep(0.2)
         self.key_mgr._direct_release(DIK_ALT)

@@ -106,11 +106,11 @@ class KeyboardInputManager:
 
     def _direct_press(self, key_code):
         PressKey(key_code)
-        self.actual_key_state[key_code] = 1
+        #self.actual_key_state[key_code] = 1
 
     def _direct_release(self, key_code):
         ReleaseKey(key_code)
-        self.actual_key_state[key_code] = 0
+        #self.actual_key_state[key_code] = 0
 
     def reset(self):
         for keycode, state in self.key_state.items():
