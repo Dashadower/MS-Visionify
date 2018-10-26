@@ -21,14 +21,17 @@ class PathAnalyzer:
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
         self.dbljump_range = 15 # not in use
 
-    def save(self, filename="mapdata.platform"):
+    def save(self, filename="mapdata.platform", minimap_roi = None):
         with open(filename, "wb") as f:
-            pickle.dump(self.platforms, f)
+            pickle.dump({"platforms" : self.platforms, "minimap" : minimap_roi}, f)
 
     def load(self, filename="mapdata.platfor"):
         if os.path.exists(filename):
             with open(filename, "rb") as f:
-                self.platforms = pickle.load(f)
+                data = pickle.load(f)
+                self.platforms = data["platforms"]
+                minimap_coords = data["minimap"]
+            return minimap_coords 
 
     def input(self, inp_x, inp_y):
         converted_tuple = (inp_x, inp_y)
@@ -122,5 +125,4 @@ class PathAnalyzer:
         self.current_platform_coords = []
         self.current_ladder_coords = []
         self.ladders = []
-
 
