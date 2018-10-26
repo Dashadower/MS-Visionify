@@ -1,10 +1,21 @@
-from src.screen_processor import StaticImageProcessor, MapleScreenCapturer
-from src.terrain_analyzer import PathAnalyzer
-from src.keystate_manager import KeyboardInputManager
-from src.player_controller import PlayerController
+import sys
+sys.path.append("../")
+sys.path.append("../src") # just in case we're outside IDE
+try:
+    from src.screen_processor import StaticImageProcessor, MapleScreenCapturer
+    from src.terrain_analyzer import PathAnalyzer
+    from src.keystate_manager import KeyboardInputManager
+    from src.player_controller import PlayerController
+    from src.directinput_constants import DIK_A, DIK_Q, DIK_D, DIK_F
+except ImportError:
+    from screen_processor import StaticImageProcessor, MapleScreenCapturer
+    from terrain_analyzer import PathAnalyzer
+    from keystate_manager import KeyboardInputManager
+    from player_controller import PlayerController
+    from directinput_constants import DIK_A, DIK_Q, DIK_D, DIK_F    
 from win32gui import SetForegroundWindow
 import cv2, imutils, time, random, os
-from src.directinput_constants import DIK_A, DIK_Q
+
 keybd_mgr = KeyboardInputManager()
 
 wincap = MapleScreenCapturer()
@@ -56,6 +67,7 @@ time.sleep(0.5)
 cplatform = None
 last_visited = None
 exceed_count = 0
+last_thousand_sword_time = time.time()
 while True:
     print("-" * 10)
     scrp.update_image(set_focus=False)
@@ -114,16 +126,28 @@ while True:
                 player_mgr.dbljump_max()
                 time.sleep(1)
 
-            keybd_mgr.single_press(DIK_A)
-            exceed_count += 1
+
+
+            if abs(last_thousand_sword_time-time.time()) >= 9:
+                keybd_mgr.single_press(DIK_F)
+                last_thousand_sword_time = time.time()
+                exceed_count += 5
+                time.sleep(0.1)
+            else:
+                keybd_mgr.single_press(DIK_A)
+                exceed_count += 1
+                time.sleep(0.1)
             if exceed_count > 18:
                 keybd_mgr.single_press(DIK_Q)
                 exceed_count = 0
 
-            time.sleep(0.5)
+            if random.randrange(1, 6) == 1:
+                keybd_mgr.single_press(DIK_D)
+            time.sleep(0.1)
+            keybd_mgr.reset()
+            time.sleep(0.4)
 
         else:
             print("failed to find platform. please reposition")
     else:
         print("failed to read minimap")
-
