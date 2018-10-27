@@ -24,7 +24,7 @@ scrp.update_image()
 player_mgr = PlayerController(keybd_mgr, scrp)
 area = scrp.get_minimap_rect()
 pathextractor = PathAnalyzer()
-
+savemode = 1
 while True:
     scrp.update_image(set_focus=False)
     playerpos = 0
@@ -33,8 +33,10 @@ while True:
     if area:
         playerpos = scrp.find_player_minimap_marker(area)
     if playerpos:
-        pathextractor.input(playerpos[0], playerpos[1])
-
+        if savemode:
+            pathextractor.input(playerpos[0], playerpos[1])
+        else:
+            pathextractor.input_oneway_platform(playerpos[0], playerpos[1])
     cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
     if playerpos:
         cv2.circle(cropped_img, playerpos, 5, (0,255,0), -1)
@@ -43,7 +45,11 @@ while True:
             cv2.line(cropped_img, platform[0], platform[1], (0, 255, 0), 1)
             cv2.circle(cropped_img, platform[0], 2, (0,0,255), -1)
             cv2.circle(cropped_img, platform[1], 2, (0, 0, 255), -1)
-
+    if pathextractor.oneway_platforms:
+        for platform in pathextractor.oneway_platforms:
+            cv2.line(cropped_img, platform[0], platform[1], (255, 0, 0), 1)
+            cv2.circle(cropped_img, platform[0], 2, (0,0,255), -1)
+            cv2.circle(cropped_img, platform[1], 2, (0, 0, 255), -1)
     cropped_img = imutils.resize(cropped_img, width=500)
     cv2.imshow("test", cropped_img)
 
@@ -57,6 +63,10 @@ while True:
         pathextractor.reset()
     elif inp == ord("s"):
         pathextractor.save(minimap_roi=area)
+    elif inp == ord("t"):
+        print("now recording oneway platform")
+        savemode = 0
+
 if os.path.exists("mapdata.platform"):
     if input("map data exists. load that instead?(y if yes)") == "y":
         mcoords = pathextractor.load()
@@ -83,6 +93,12 @@ while True:
             if cpos[0] <= platform[1][0] and cpos[0] >= platform[0][0] and cpos[1] == platform[1][1]:
                 cplatform = platform
                 break
+        if not cplatform:
+            for platform in pathextractor.oneway_platforms:
+                if cpos[0] <= platform[1][0] and cpos[0] >= platform[0][0] and cpos[1] == platform[1][1]:
+                    cplatform = platform
+                    print("at oneway platform")
+                    break
         if cplatform:
 
             print("current platform:", cplatform)
@@ -132,7 +148,7 @@ while True:
 
 
 
-            if abs(last_thousand_sword_time-time.time()) >= 15:
+            if abs(last_thousand_sword_time-time.time()) >= 10 + random.randint(1, 6):
                 keybd_mgr.single_press(DIK_F)
                 last_thousand_sword_time = time.time()
                 exceed_count += 5
@@ -147,9 +163,11 @@ while True:
                 time.sleep(1)
                 exceed_count = 0
 
-            if random.randrange(1, 6) == 1:
+            if random.randrange(1, 5) == 1:
+                time.sleep(1)
                 keybd_mgr.single_press(DIK_D)
                 print("randomized")
+                time.sleep(0.2)
             time.sleep(0.1)
             #keybd_mgr.reset()
             time.sleep(0.4)

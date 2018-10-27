@@ -3,9 +3,11 @@ import math, pickle, os
 class PathAnalyzer:
     def __init__(self):
         self.platforms = []
+        self.oneway_platforms = []
         self.ladders = []
         self.visited_coordinates = []
         self.current_platform_coords = []
+        self.current_oneway_coords = []
         self.current_ladder_coords = []
         self.last_x = None
         self.last_y = None
@@ -23,15 +25,40 @@ class PathAnalyzer:
 
     def save(self, filename="mapdata.platform", minimap_roi = None):
         with open(filename, "wb") as f:
-            pickle.dump({"platforms" : self.platforms, "minimap" : minimap_roi}, f)
+            pickle.dump({"platforms" : self.platforms, "oneway": self.oneway_platforms, "minimap" : minimap_roi}, f)
 
     def load(self, filename="mapdata.platform"):
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 data = pickle.load(f)
                 self.platforms = data["platforms"]
+                self.oneway_platforms = data["oneway"]
                 minimap_coords = data["minimap"]
             return minimap_coords 
+
+    def input_oneway_platform(self, inp_x, inp_y):
+        """input values to use in finding one way(platforms which can't be a destination platform)"""
+        converted_tuple = (inp_x, inp_y)
+        if converted_tuple not in self.visited_coordinates:
+            self.visited_coordinates.append(converted_tuple)
+
+        # check if in continous platform
+        if inp_y == self.last_y and self.last_x >= self.last_x - self.platform_variance and self.last_x <= self.last_x + self.platform_variance:
+            # check if current coordinate is within platform being tracked
+            if converted_tuple not in self.current_oneway_coords:
+                self.current_oneway_coords.append(converted_tuple)
+        else:
+            # current coordinates do not belong in any platforms
+            # terminate pending platform, if exists and create new pending platform
+            if len(self.current_oneway_coords) >= self.minimum_platform_length:
+                platform_start = min(self.current_oneway_coords, key=lambda x: x[0])
+                platform_end = max(self.current_oneway_coords, key=lambda x: x[0])
+
+                self.oneway_platforms.append((platform_start, platform_end))
+            self.current_oneway_coords = []
+            if converted_tuple not in self.visited_coordinates:
+                self.current_oneway_coords.append(converted_tuple)
+
 
     def input(self, inp_x, inp_y):
         converted_tuple = (inp_x, inp_y)
