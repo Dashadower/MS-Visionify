@@ -40,6 +40,8 @@ DIK_UP = 0xC8
 DIK_DOWN = 0xD0
 DIK_ALT = 0xB8
 
+DIK_SPACE = 0x39
+
 DIK_NUMLOCK = 0x45
 
 DIK_RMENU = 0xB8 # Right Alt button (Kor/En)

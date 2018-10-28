@@ -1,8 +1,11 @@
 # -*- coding:utf-8 -*-
 from screen_processor import MapleScreenCapturer
+from keystate_manager import KeyboardInputManager
+from directinput_constants import DIK_SPACE, DIK_UP
 import cv2, os, time, glob, imutils
 import numpy as np
 cap = MapleScreenCapturer()
+kbd = KeyboardInputManager()
 from win32gui import SetForegroundWindow
 os.chdir("images/screenshots/finished")
 imgs = glob.glob("*.png")
@@ -24,11 +27,29 @@ while True:
         break
     elif inp == ord("s"):
         SetForegroundWindow(cap.ms_get_screen_hwnd())
-        time.sleep(1)
+        for t in range(5):
+            time.sleep(1)
+            kbd.single_press(DIK_SPACE)
+            time.sleep(0.3)
+            ds = cap.capture(set_focus=False)
+            ds = cv2.cvtColor(np.array(ds), cv2.COLOR_RGB2BGR)
+            ds = ds[y:y+h, x:x+w]
+
+            highest = highest + 1
+            cv2.imwrite("output%d.png"%(highest), ds)
+            print("saved", "output%d.png"%(highest))
+            for g in range(3):
+                kbd.single_press(DIK_UP)
+                time.sleep(0.2)
+            time.sleep(3)
+        print("done")
+    elif inp == ord("d"):
+        SetForegroundWindow(cap.ms_get_screen_hwnd())
+        time.sleep(0.3)
         ds = cap.capture(set_focus=False)
         ds = cv2.cvtColor(np.array(ds), cv2.COLOR_RGB2BGR)
-        ds = ds[y:y+h, x:x+w]
+        ds = ds[y:y + h, x:x + w]
 
         highest = highest + 1
-        cv2.imwrite("output%d.png"%(highest), ds)
-        print("saved", "output%d.png"%(highest))
+        cv2.imwrite("output%d.png" % (highest), ds)
+        print("saved", "output%d.png" % (highest))
