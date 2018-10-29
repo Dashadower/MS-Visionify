@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+
 # -*- coding:utf-8 -*-
 import cv2
 import numpy as np
@@ -33,7 +33,7 @@ session = Session(config=ConfigProto(gpu_options=gpuoptions))
 K.set_session(session)
 classifier = Sequential()
 
-classifier.add(Conv2D(32, (3,3), input_shape=(img_size, img_size, 3)))
+classifier.add(Conv2D(32, (3,3), input_shape=(img_size, img_size, 1)))
 classifier.add(Activation("relu"))
 classifier.add(MaxPooling2D(pool_size=(2,2)))
 
@@ -58,24 +58,28 @@ classifier.add(Activation("softmax"))
 
 classifier.compile(optimizer = adam(lr=1e-5), loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
-train_datagen = ImageDataGenerator(horizontal_flip = True)
+train_datagen = ImageDataGenerator(rotation_range=3)
 
 test_datagen = ImageDataGenerator()
 
 training_set = train_datagen.flow_from_directory('images/cropped/traindata',
+                                                 color_mode="grayscale",
                                                  target_size = (img_size, img_size),
                                                  batch_size = 32,
                                                  class_mode = 'categorical', shuffle=True)
 
 test_set = test_datagen.flow_from_directory('images/cropped/testdata',
+                                            color_mode="grayscale",
                                             target_size = (img_size, img_size),
                                             batch_size = 32,
                                             class_mode = 'categorical', shuffle=True)
-print(classifier.summary())
-classifier.fit_generator(training_set,
-                         steps_per_epoch = 8000,
-                         epochs = 15,
-                         validation_data = test_set,
-                         validation_steps = 2000, shuffle=True)
 
-classifier.save("arrow_classifier_keras.h5")
+with open("class_indices.txt", "w") as indices_fine:
+    indices_fine.write(str(classifier.summary()))
+    indices_fine.write("\n")
+    indices_fine.write("training_set indices:\n"+str(training_set.class_indices))
+    indices_fine.write("test_set indices:\n"+str(test_set.class_indices))
+
+classifier.fit_generator(training_set,steps_per_epoch = 8000,epochs = 15,validation_data = test_set,validation_steps = 2000, shuffle=True)
+
+classifier.save("arrow_classifier_keras_gray.h5")

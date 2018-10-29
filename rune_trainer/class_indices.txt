@@ -1,0 +1,4 @@
+None
+training_set indices:
+{'down': 0, 'left': 1, 'right': 2, 'up': 3}test_set indices:
+{'down': 0, 'left': 1, 'right': 2, 'up': 3}

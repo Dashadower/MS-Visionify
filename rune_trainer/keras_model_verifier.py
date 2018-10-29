@@ -10,9 +10,11 @@ from tensorflow import Session, ConfigProto, GPUOptions
 gpuoptions = GPUOptions(allow_growth=True)
 session = Session(config=ConfigProto(gpu_options=gpuoptions))
 K.set_session(session)
-model = load_model("arrow_classifier_keras.h5")
-#model.compile(optimizer = "adam", loss = 'categorical_crossentropy', metrics = ['accuracy'])
-from keras.models import load_model
+model = load_model("arrow_classifier_keras_rgb.h5")
+model.compile(optimizer = "adam", loss = 'categorical_crossentropy', metrics = ['accuracy'])
+model.load_weights("arrow_classifier_keras_rgb.h5")
+
+
 x, y, w, h = 450, 180, 500, 130
 clahe = cv2.createCLAHE(clipLimit=3, tileGridSize=(8,8))
 ds = None
@@ -25,7 +27,7 @@ while True:
     if inp == ord("q"):
         cv2.destroyAllWindows()
         break
-    elif inp == ord("d"):
+    elif inp == ord("s"):
         SetForegroundWindow(cap.ms_get_screen_hwnd())
         time.sleep(0.3)
         ds = cap.capture(set_focus=False)
@@ -34,6 +36,7 @@ while True:
 
 img = ds
 color = img.copy()
+display = color.copy()
 lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 l, a, b = cv2.split(lab)
 l2 = clahe.apply(l)
@@ -49,16 +52,20 @@ if circles is not None:
         print(x, y, r)
         cropped = color[max(0,int(y-60/2)):int(y+60/2), max(0,int(x-60/2)):int(x+60/2)]
         circle_roi.append([np.reshape(cropped, [1,60,60,3]), (x,y), cropped])
-        cv2.circle(color, (x, y), r, (0, 255, 0), 2)
+        #cv2.circle(display, (x, y), r, (0, 255, 0), 2)
 cv2.imshow("", color)
 dt = cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 
-for circ in circle_roi:
-    result = np.argmax(model.predict(circ[0]))
+labels = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
+img2tensor = np.vstack([x[0] for x in circle_roi])
+res = model.predict_classes(img2tensor, batch_size=4)
+index = 0
+for result in res:
     print(result)
 
-    cv2.imshow(str(result), circ[2])
+    cv2.imshow(str(result), circle_roi[index][2])
     cv2.waitKeyEx(0)
     cv2.destroyAllWindows()
+    index += 1
