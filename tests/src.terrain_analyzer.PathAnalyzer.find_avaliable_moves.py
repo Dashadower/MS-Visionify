@@ -115,8 +115,8 @@ while True:
                     other_solutions = solutions
             elif not last_visited:
                 other_solutions = solutions
-            print("avaliable solutions:", other_solutions)
-            print("last visited:", last_visited)
+            #print("avaliable solutions:", other_solutions)
+            #print("last visited:", last_visited)
             solution = random.choice(other_solutions)
             last_visited = cplatform
 
@@ -131,14 +131,14 @@ while True:
                 player_mgr.horizontal_move_goal(int((solution[1][0]+solution[2][0])/2), blocking=True)
                 #player_mgr.quadratic_platform_jump(solution[0], solution[1][0], solution[2][0], area)
             print("horizontal movement done")
-            time.sleep(0.2)
+            time.sleep(0.3)
 
             if solution[3] == "jmpl":
-                player_mgr.jumpl_glide()
-                time.sleep(0.5)
+                player_mgr.jumpl_double()
+                time.sleep(1)
             elif solution[3] == "jmpr":
-                player_mgr.jumpr_glide()
-                time.sleep(0.5)
+                player_mgr.jumpr_double()
+                time.sleep(1)
             elif solution[3] == "drop":
                 player_mgr.drop()
                 time.sleep(1)
@@ -152,9 +152,10 @@ while True:
                 keybd_mgr.single_press(DIK_F)
                 last_thousand_sword_time = time.time()
                 exceed_count += 5
-                time.sleep(0.1)
+                time.sleep(1)
             else:
                 keybd_mgr.single_press(DIK_A)
+                print("PRESS A")
                 exceed_count += 1
                 time.sleep(0.1)
             
@@ -164,13 +165,12 @@ while True:
                 exceed_count = 0
 
             if random.randrange(1, 5) == 1:
-                time.sleep(1)
+                time.sleep(0.5)
                 keybd_mgr.single_press(DIK_D)
                 print("randomized")
                 time.sleep(0.2)
             time.sleep(0.1)
             #keybd_mgr.reset()
-            time.sleep(0.4)
 
         else:
             print("failed to find platform. please reposition")
