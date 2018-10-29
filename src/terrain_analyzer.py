@@ -9,6 +9,7 @@ class PathAnalyzer:
         self.current_platform_coords = []
         self.current_oneway_coords = []
         self.current_ladder_coords = []
+        self.navigation_map = {}
         self.last_x = None
         self.last_y = None
         self.movement = None
@@ -35,6 +36,28 @@ class PathAnalyzer:
                 self.oneway_platforms = data["oneway"]
                 minimap_coords = data["minimap"]
             return minimap_coords 
+
+    def calculate_navigation_map(self):
+        for platform in self.platforms:
+            croutes = []
+            available_routes = self.find_available_moves(platform)
+            for route in available_routes:
+                croutes.append([route[0],route, 0])
+            self.navigation_map[platform] = croutes
+
+    def move_platform(self, from_platform, to_platform):
+        for key in self.navigation_map.keys():
+            need_reset = True
+            for route in self.navigation_map[key]:
+                if route[0] == to_platform:
+                    route[2] = 1
+                if route[2] == 0:
+                    need_reset = False
+            if need_reset:
+                for route in self.navigation_map[key]:
+                    route[2] = 0
+        
+
 
     def input_oneway_platform(self, inp_x, inp_y):
         """input values to use in finding one way(platforms which can't be a destination platform)"""

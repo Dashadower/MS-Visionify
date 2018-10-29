@@ -1,4 +1,4 @@
-from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT
+from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT, DIK_1
 import time, math
 # simple jump vertical distance: about 6 pixels
 
@@ -16,7 +16,9 @@ class PlayerController:
         self.mode = None
 
         self.finemode_limit = 4
-        self.horizontal_goal_offset = 4
+        self.horizontal_goal_offset = 5
+
+        self.demonstrike_min_distance = 18
 
         self.horizontal_jump_distance = 10
         self.horizontal_jump_height = 9
@@ -148,6 +150,37 @@ class PlayerController:
             mode = "l"
         else:
             return 0
+        """?if abs(goal_x - self.x) >= self.demonstrike_min_distance:
+            if mode == "r":
+                self.key_mgr.single_press(DIK_RIGHT)
+                time.sleep(0.05)
+                while True:
+                    self.image_handler.update_image()
+                    self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
+                    print(goal_x, self.x)
+                    self.key_mgr.single_press(DIK_1)
+                    if abs(goal_x - self.x) <= self.demonstrike_min_distance or goal_x <= self.x:
+                        break
+                    time.sleep(0.2)
+            elif mode == "l":
+                self.key_mgr.single_press(DIK_LEFT)
+                time.sleep(0.05)
+                while True:
+                    self.image_handler.update_image()
+                    self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
+                    print(goal_x, self.x)
+                    self.key_mgr.single_press(DIK_1)
+                    if abs(goal_x - self.x) <= self.demonstrike_min_distance or goal_x >= self.x:
+                        break
+                    time.sleep(0.2)"""
+
+        if goal_x - self.x > 0:
+            # need to go right:
+            mode = "r"
+        elif goal_x - self.x < 0:
+            # need to go left:
+            mode = "l"            
+        
         if mode == "r":
             # need to go right:
             self.key_mgr._direct_press(DIK_RIGHT)
@@ -156,11 +189,10 @@ class PlayerController:
             self.key_mgr._direct_press(DIK_LEFT)
         while True:
             self.image_handler.update_image()
-            self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)
+            self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
             if not self.x:
                 assert 1 == 0, "horizontal_move goal: failed to recognize coordinates"
-            if self.x:
-                self.x = self.x[0]
+
             if mode == "r":
                 if self.x >= goal_x-self.horizontal_goal_offset:
                     self.key_mgr._direct_release(DIK_RIGHT)
@@ -196,6 +228,20 @@ class PlayerController:
         self.key_mgr._direct_release(DIK_LEFT)
         self.key_mgr._direct_release(DIK_ALT)
 
+    def jumpl_double(self):
+        """Blocking call"""
+        self.key_mgr._direct_press(DIK_ALT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_ALT)
+        time.sleep(0.1)
+        self.key_mgr._direct_press(DIK_LEFT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_LEFT)
+        time.sleep(0.05)
+        self.key_mgr._direct_press(DIK_LEFT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_LEFT)
+
     def jumpl_glide(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)
@@ -217,6 +263,21 @@ class PlayerController:
         time.sleep(0.1)
         self.key_mgr._direct_release(DIK_RIGHT)
         self.key_mgr._direct_release(DIK_ALT)
+
+    def jumpr_double(self):
+        """Blocking call"""
+        self.key_mgr._direct_press(DIK_ALT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_ALT)
+        time.sleep(0.1)
+        self.key_mgr._direct_press(DIK_RIGHT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_RIGHT)
+        time.sleep(0.05)
+        self.key_mgr._direct_press(DIK_RIGHT)
+        time.sleep(0.05)
+        self.key_mgr._direct_release(DIK_RIGHT)
+
 
     def jumpr_glide(self):
         """Blocking call"""
