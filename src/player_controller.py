@@ -3,17 +3,19 @@ import time, math
 # simple jump vertical distance: about 6 pixels
 
 class PlayerController:
-    def __init__(self, key_mgr, img_processor_handle):
+    def __init__(self, key_mgr, cpos_handler):
         self.x = None
         self.y = None
 
         self.key_mgr = key_mgr
-        self.image_handler = img_processor_handle
+        self.cpos_handler = cpos_handler
         self.goal_x = None
         self.goal_y = None
 
         self.busy = False
         self.mode = None
+
+
 
         self.finemode_limit = 4
         self.horizontal_goal_offset = 5
@@ -82,7 +84,7 @@ class PlayerController:
             print("no solution found")
         else:
             print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
-            self.horizontal_move_goal(minimum_jmp_x, blocking=True)
+            self.horizontal_move_goal(minimum_jmp_x)
 
 
     def precise_horizontal_move_goal(self, goal_x, blocking=False):
@@ -141,11 +143,12 @@ class PlayerController:
                 mode = "l"
         self.key_mgr.reset()
 
-    def horizontal_move_goal(self, goal_x, blocking=False):
-        if goal_x - self.x > 0:
+    def horizontal_move_goal(self, goal_x):
+        current_x = self.cpos_handler()[0]
+        if goal_x - current_x > 0:
             # need to go right:
             mode = "r"
-        elif goal_x - self.x < 0:
+        elif goal_x - current_x < 0:
             # need to go left:
             mode = "l"
         else:
@@ -174,12 +177,7 @@ class PlayerController:
                         break
                     time.sleep(0.2)"""
 
-        if goal_x - self.x > 0:
-            # need to go right:
-            mode = "r"
-        elif goal_x - self.x < 0:
-            # need to go left:
-            mode = "l"            
+
         
         if mode == "r":
             # need to go right:
@@ -188,8 +186,7 @@ class PlayerController:
             # need to go left:
             self.key_mgr._direct_press(DIK_LEFT)
         while True:
-            self.image_handler.update_image()
-            self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
+            self.x = self.cpos_handler()[0]
             if not self.x:
                 assert 1 == 0, "horizontal_move goal: failed to recognize coordinates"
 
@@ -219,6 +216,19 @@ class PlayerController:
         time.sleep(0.01)
         self.key_mgr._direct_release(DIK_UP)
 
+    def dbljump_half(self):
+        """Warining: is a blocking call"""
+        self.key_mgr._direct_press(DIK_ALT)
+        time.sleep(0.1)
+        self.key_mgr._direct_release(DIK_ALT)
+        time.sleep(0.23)
+        self.key_mgr._direct_press(DIK_UP)
+        time.sleep(0.01)
+        self.key_mgr._direct_release(DIK_UP)
+        time.sleep(0.1)
+        self.key_mgr._direct_press(DIK_UP)
+        time.sleep(0.01)
+        self.key_mgr._direct_release(DIK_UP)
     def jumpl(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)

@@ -81,9 +81,9 @@ class KeyboardInputManager:
     def set_key_state(self, key_code, value):
         self.key_state[key_code] = value
 
-    def single_press(self, key_code):
+    def single_press(self, key_code, duration=0.08):
         self._direct_press(key_code)
-        time.sleep(0.08)
+        time.sleep(duration)
         self._direct_release(key_code)
 
     def translate_key_state(self):

@@ -4,6 +4,7 @@ from src.screen_processor import StaticImageProcessor
 from player_medal_detector import PlayerMedalDetector
 from matplotlib import pyplot as plt
 import numpy as np
+
 screencap = MapleScreenCapturer()
 scrp = StaticImageProcessor(screencap)
 scrp.update_image()
@@ -20,6 +21,7 @@ end_y = None
 last_coords = None
 is_recording = False
 min_y = 10000
+
 
 while True:
     scrp.update_image(set_focus=False)
@@ -39,24 +41,32 @@ while True:
         cv2.destroyAllWindows()
         break
     elif inp == ord("a"):
-        if not start_x:
+        if not is_recording:
             start_x = playerpos[0]
             start_y = playerpos[1]
             is_recording = True
+
             print("recording started")
             jmp_coords.append(playerpos)
-        elif start_x:
+        elif is_recording:
             end_x = playerpos[0]
             end_y = playerpos[1]
+
             is_recording = False
+
+            starttime = 0
+            endtime = 0
             print("finished")
+            print(jmp_coords)
+            print("y coord movement:", abs(start_y - min_y))
+            print("x coord movement:", abs(start_x - end_x))
+
     elif inp == ord("r"):
         scrp.reset_minimap_area()
         area = scrp.get_minimap_rect()
 
-print(jmp_coords)
-print("y coord movement:", abs(start_y-min_y))
-print("x coord movement:", abs(start_x-end_x))
+
+
 """start_x = 91
 start_y = 34
 end_x = 101

@@ -2,14 +2,14 @@ import math, pickle, os
 
 class PathAnalyzer:
     def __init__(self):
-        self.platforms = []
+        self.platforms = [] # Format: [(x1, y1), (x2, y2)] (x1<x2)
         self.oneway_platforms = []
         self.ladders = []
         self.visited_coordinates = []
         self.current_platform_coords = []
         self.current_oneway_coords = []
         self.current_ladder_coords = []
-        self.navigation_map = {}
+        self.navigation_map = {} # {((10,20),(15,20)):{[(((18,18),(25,18)),(15,20), (15,20), "jumpr"),0]}}
         self.last_x = None
         self.last_y = None
         self.movement = None
@@ -20,9 +20,9 @@ class PathAnalyzer:
         self.minimum_platform_length = 10
         self.minimum_ladder_length = 5
 
-        self.doublejump_height = 31  # total absolute jump height is about 31, but take account platform size
+        self.doublejump_max_height = 31  # total absolute jump height is about 31, but take account platform size
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
-        self.dbljump_range = 15 # not in use
+        self.dbljump_half_height = 20 # not in use
 
     def save(self, filename="mapdata.platform", minimap_roi = None):
         with open(filename, "wb") as f:
@@ -38,11 +38,12 @@ class PathAnalyzer:
             return minimap_coords 
 
     def calculate_navigation_map(self):
-        for platform in self.platforms:
+        """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
+        for platform in self.platforms+self.oneway_platforms:
             croutes = []
             available_routes = self.find_available_moves(platform)
             for route in available_routes:
-                croutes.append([route[0],route, 0])
+                croutes.append([route, 0])
             self.navigation_map[platform] = croutes
 
     def move_platform(self, from_platform, to_platform):
@@ -56,8 +57,6 @@ class PathAnalyzer:
             if need_reset:
                 for route in self.navigation_map[key]:
                     route[2] = 0
-        
-
 
     def input_oneway_platform(self, inp_x, inp_y):
         """input values to use in finding one way(platforms which can't be a destination platform)"""
@@ -81,7 +80,6 @@ class PathAnalyzer:
             self.current_oneway_coords = []
             if converted_tuple not in self.visited_coordinates:
                 self.current_oneway_coords.append(converted_tuple)
-
 
     def input(self, inp_x, inp_y):
         converted_tuple = (inp_x, inp_y)
@@ -133,7 +131,8 @@ class PathAnalyzer:
             drop : drop down directly
             jmpr : right jump
             jmpl : left jump
-            dbljmp : double jump up
+            dbljmp_max : double jump up fully
+            dbljmp_half : double jump a bit less
         """
 
         return_map_dict = []
@@ -151,8 +150,11 @@ class PathAnalyzer:
                         return_map_dict.append(solution)
                     else:
                         # We need to use double jump to get there, but first check if within jump height
-                        if abs(platform[0][1] - other_platform[0][1]) <= self.doublejump_height:
-                            solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "dbljmp"]
+                        if abs(platform[0][1] - other_platform[0][1]) <= self.dbljump_half_height:
+                            solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "dbljmp_half"]
+                            return_map_dict.append(solution)
+                        elif abs(platform[0][1] - other_platform[0][1]) <= self.dbljump_half_height:
+                            solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "dbljmp_max"]
                             return_map_dict.append(solution)
                 else:
                     # 2. No vertical overlaps. Calculate euclidean distance between each platform endpoints

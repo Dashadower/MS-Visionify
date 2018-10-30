@@ -11,5 +11,5 @@ player_cntrlr = PlayerController(kbd_mgr, None)
 
 SetForegroundWindow(hwnd)
 time.sleep(0.5)
-player_cntrlr.jumpr_glide()
+player_cntrlr.dbljump_half()
 
