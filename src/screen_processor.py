@@ -71,7 +71,7 @@ class StaticImageProcessor:
                 self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
             rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.rect)
             if not rgb_img:
-                assert self.rgb_img != 0, "self.img_handle did not return img"
+                assert self.bgr_img != 0, "self.img_handle did not return img"
         self.bgr_img = cv2.cvtColor(np.array(rgb_img), cv2.COLOR_RGB2BGR)
         self.gray_img = cv2.cvtColor(self.bgr_img, cv2.COLOR_BGR2GRAY)
 

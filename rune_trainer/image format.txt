@@ -1,0 +1,18 @@
+IMPORTANT: ALL IMAGE PROCESSING IS DONE AT RUNE_SCREEN_CAPTURE
+
+image capture format:
+capture as RGB - BGR image
+convert to HSV and increase saturation and value
+
+ds = cv2.cvtColor(ds, cv2.COLOR_BGR2HSV)
+# Maximize saturation
+ds[:, :, 1] = 255
+ds[:, :, 2] = 255
+
+
+finally convert to bgr and then gray
+
+ds = cv2.cvtColor(ds, cv2.COLOR_HSV2BGR)
+ds = cv2.cvtColor(ds, cv2.COLOR_BGR2GRAY)
+
+

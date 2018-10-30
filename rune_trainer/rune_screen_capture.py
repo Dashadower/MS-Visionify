@@ -34,7 +34,12 @@ while True:
             ds = cap.capture(set_focus=False)
             ds = cv2.cvtColor(np.array(ds), cv2.COLOR_RGB2BGR)
             ds = ds[y:y+h, x:x+w]
-
+            ds = cv2.cvtColor(ds, cv2.COLOR_BGR2HSV)
+            # Maximize saturation
+            ds[:, :, 1] = 255
+            ds[:, :, 2] = 255
+            ds = cv2.cvtColor(ds, cv2.COLOR_HSV2BGR)
+            ds = cv2.cvtColor(ds, cv2.COLOR_BGR2GRAY)
             highest = highest + 1
             cv2.imwrite("output%d.png"%(highest), ds)
             print("saved", "output%d.png"%(highest))
@@ -49,7 +54,12 @@ while True:
         ds = cap.capture(set_focus=False)
         ds = cv2.cvtColor(np.array(ds), cv2.COLOR_RGB2BGR)
         ds = ds[y:y + h, x:x + w]
-
+        ds = cv2.cvtColor(ds, cv2.COLOR_BGR2HSV)
+        # Maximize saturation
+        ds[:, :, 1] = 255
+        ds[:, :, 2] = 255
+        ds = cv2.cvtColor(ds, cv2.COLOR_HSV2BGR)
+        ds = cv2.cvtColor(ds, cv2.COLOR_BGR2GRAY)
         highest = highest + 1
         cv2.imwrite("output%d.png" % (highest), ds)
         print("saved", "output%d.png" % (highest))

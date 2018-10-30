@@ -3,12 +3,12 @@ import time, math
 # simple jump vertical distance: about 6 pixels
 
 class PlayerController:
-    def __init__(self, key_mgr, img_handle):
+    def __init__(self, key_mgr, img_processor_handle):
         self.x = None
         self.y = None
 
         self.key_mgr = key_mgr
-        self.image_handler = img_handle
+        self.image_handler = img_processor_handle
         self.goal_x = None
         self.goal_y = None
 

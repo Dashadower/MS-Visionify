@@ -19,7 +19,7 @@ total = 0
 for _img in images:
     print(_img)
     os.chdir("../screenshots")
-    img = cv2.imread(_img)
+    img = cv2.imread(_img, 1)
     color = img.copy()
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
