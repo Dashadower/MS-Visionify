@@ -10,9 +10,9 @@ from keras.models import load_model
 from keras import backend as K
 from tensorflow import Session, ConfigProto, GPUOptions
 # Use GPU Mode TF
-#gpuoptions = GPUOptions(allow_growth=True)
-#session = Session(config=ConfigProto(gpu_options=gpuoptions))
-#K.set_session(session)
+gpuoptions = GPUOptions(allow_growth=True)
+session = Session(config=ConfigProto(gpu_options=gpuoptions))
+K.set_session(session)
 # End Use GPU Mode TF
 model = load_model("arrow_classifier_keras_gray.h5")
 model.compile(optimizer = "adam", loss = 'categorical_crossentropy', metrics = ['accuracy'])
@@ -27,17 +27,16 @@ while True:
     final_img = imutils.resize(img_arr, width = 200)
     cv2.imshow("s to save image", final_img)
     inp = cv2.waitKey(1)
+
     if inp == ord("q"):
-        cv2.destroyAllWindows()
-        break
-    elif inp == ord("s"):
         SetForegroundWindow(cap.ms_get_screen_hwnd())
         time.sleep(0.3)
         ds = cap.capture(set_focus=False)
         ds = cv2.cvtColor(np.array(ds), cv2.COLOR_RGB2BGR)
         ds = ds[y:y + h, x:x + w]
         print("saved")
-
+        cv2.destroyAllWindows()
+        break
 
 
 display = ds.copy()
@@ -49,7 +48,7 @@ gray[:, :, 2] = 255
 gray = cv2.cvtColor(gray, cv2.COLOR_HSV2BGR)
 gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
 
-circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT,1, img.shape[0]/8 , param1=100, param2=30,minRadius=18, maxRadius=30)
+circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT,1, gray.shape[0]/8 , param1=100, param2=30,minRadius=18, maxRadius=30)
 circle_roi = []
 if circles is not None:
     circles = np.round(circles[0, :]).astype("int")
@@ -62,10 +61,12 @@ if circles is not None:
         cv2.circle(gray, (x, y), r, (0, 255, 0), 2)
         cv2.circle(display, (x, y), r, (0, 255, 0), 2)
 
-cv2.imshow("", np.vstack([display, gray]))
-dt = cv2.waitKey(0)
+cv2.imshow("", display)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
-
+cv2.imshow("", gray)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 circle_roi = sorted(circle_roi, key=lambda x: x[1][0])
 labels = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
 img2tensor = np.vstack([x[0] for x in circle_roi])
