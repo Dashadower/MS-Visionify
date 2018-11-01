@@ -33,6 +33,12 @@ while True:
         img_arr = img_arr[y:y + h, x:x + w]
         break
 
+    elif inp == ord("r"):
+        img_arr = cv2.imread("validation_rgb.png")
+        img_to_work_on = img_arr.copy()
+        print("read data")
+        break
+
 
 hsv_img = cv2.cvtColor(img_arr, cv2.COLOR_BGR2HSV)
 # Maximize saturation

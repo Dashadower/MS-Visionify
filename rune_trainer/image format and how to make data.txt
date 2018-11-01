@@ -21,4 +21,21 @@ finally convert to bgr and then gray
 ds = cv2.cvtColor(ds, cv2.COLOR_HSV2BGR)
 ds = cv2.cvtColor(ds, cv2.COLOR_BGR2GRAY)
 
+Dataset capture location:
+룬당 7장, 채널변경, 지역 5개 이상
+1. 츄츄 아일랜드
+2. 소멸의 여로
+3. 헤이븐
+4. 타락한 세계수
+5. 황혼의 페리온
+6. 여우골짜기
+7. 파괴된 헤네시스
+8. 커닝타워
+9. 세 개의 문(시간의 신전)
+10. 사자왕의 성
+11. 엘린숲
+12. 유적발굴지
+13. 슬리피 던전
+
+
 

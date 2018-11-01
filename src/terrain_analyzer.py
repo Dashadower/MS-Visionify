@@ -1,7 +1,15 @@
 import math, pickle, os
 
+
 class PathAnalyzer:
+    """Class to process map terrain and parse information from coordinates
+    Commonly used terms:
+    Instance platform: member of list self.platforms format: [(x1, y1), (x2,y2)] of a platform. Used as key
+        to identify indivual platforms."""
     def __init__(self):
+        """Difference between platforms and oneway_platforms
+        platforms can be navigation mapped to other platforms, but to to oneway_platforms
+        oneway_platforms can be navigation mapped only to platforms, and not to other oneway_platforms"""
         self.platforms = [] # Format: [(x1, y1), (x2, y2)] (x1<x2)
         self.oneway_platforms = []
         self.ladders = []
@@ -9,26 +17,32 @@ class PathAnalyzer:
         self.current_platform_coords = []
         self.current_oneway_coords = []
         self.current_ladder_coords = []
-        self.navigation_map = {} # {((10,20),(15,20)):{[(((18,18),(25,18)),(15,20), (15,20), "jumpr"),0]}}
+        self.navigation_map = {}  # {((10,20),(15,20)):{[(((18,18),(25,18)),(15,20), (15,20), "jumpr"),0]}}
         self.last_x = None
         self.last_y = None
         self.movement = None
 
-        self.determination_accuracy = 0
+        self.determination_accuracy = 0  # Offset to determine y coord accuracy NOT USED
         self.platform_variance = 3
         self.ladder_variance = 2
-        self.minimum_platform_length = 10
-        self.minimum_ladder_length = 5
+        self.minimum_platform_length = 10  # Minimum x length of coordinates to be logged as a platform by input()
+        self.minimum_ladder_length = 5  # Minimum y length of coordinated to be logged as a ladder by input()
 
         self.doublejump_max_height = 31  # total absolute jump height is about 31, but take account platform size
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
-        self.dbljump_half_height = 20 # not in use
+        self.dbljump_half_height = 20  # absolute jump height of a half jump. Used for generating navigation map
 
     def save(self, filename="mapdata.platform", minimap_roi = None):
+        """Save platforms, oneway_platforms, ladders, minimap_roi to a file
+        :param filename: path to save file
+        :param minimap_roi: tuple or list of onscreen minimap bounding box coordinates which will be saved"""
         with open(filename, "wb") as f:
             pickle.dump({"platforms" : self.platforms, "oneway": self.oneway_platforms, "minimap" : minimap_roi}, f)
 
     def load(self, filename="mapdata.platform"):
+        """Open a map data file and load data from file
+        :param filename: Plath to map data file
+        :return boundingRect tuple of minimap as stored on file"""
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 data = pickle.load(f)
@@ -47,6 +61,9 @@ class PathAnalyzer:
             self.navigation_map[platform] = croutes
 
     def move_platform(self, from_platform, to_platform):
+        """Update navigation map visit counter to keep track of visited platforms when moded
+        :param from_platform: departing platform instance
+        :param to_platform: destination platform instance"""
         for key in self.navigation_map.keys():
             need_reset = True
             for route in self.navigation_map[key]:
@@ -59,7 +76,10 @@ class PathAnalyzer:
                     route[2] = 0
 
     def input_oneway_platform(self, inp_x, inp_y):
-        """input values to use in finding one way(platforms which can't be a destination platform)"""
+        """input values to use in finding one way(platforms which can't be a destination platform)
+        Refer to input() to see how it works
+        :param inp_x: x coordinate to log
+        :param inp_y: y coordinate to log"""
         converted_tuple = (inp_x, inp_y)
         if converted_tuple not in self.visited_coordinates:
             self.visited_coordinates.append(converted_tuple)
@@ -82,6 +102,15 @@ class PathAnalyzer:
                 self.current_oneway_coords.append(converted_tuple)
 
     def input(self, inp_x, inp_y):
+        """Use player minimap coordinates to determine start and end of platforms
+        This function logs player minimap marker coordinates in an attempt to identify platform coordinates from them.
+        Player coordinates are temoporarily logged to self.current_platform_coords until a platform is determined for
+        the given set of coordinates.
+        Given that all platforms are parallel to the ground, meaning all coordinates of the platform are on the same
+        elevation, a collection of input player coordinates are deemed to be on a same platform until a change in y
+        coordinates is detected.
+        :param inp_x: x player minimap coordinate to log
+        :param inp_y: y player minimap coordinate to log"""
         converted_tuple = (inp_x, inp_y)
         if converted_tuple not in self.visited_coordinates:
             self.visited_coordinates.append(converted_tuple)

@@ -36,30 +36,34 @@ classifier = Sequential()
 classifier.add(Conv2D(32, (3,3), input_shape=(img_size, img_size, 1)))
 classifier.add(Activation("relu"))
 classifier.add(BatchNormalization(axis=-1))
-classifier.add(MaxPooling2D(pool_size=(3,3)))
-classifier.add(Dropout(0.25))
 
-classifier.add(Conv2D(64, (3, 3), padding='same'))
+
+classifier.add(Conv2D(64, (3,3), padding='same'))
 classifier.add(Activation("relu"))
 classifier.add(BatchNormalization(axis=-1))
-classifier.add(Conv2D(64, (3, 3), padding='same'))
-classifier.add(Activation("relu"))
-classifier.add(BatchNormalization(axis=-1))
+#classifier.add(Conv2D(64, (3, 3), padding='same'))
+#classifier.add(Activation("relu"))
+#classifier.add(BatchNormalization(axis=-1))
 classifier.add(MaxPooling2D(pool_size=(2, 2)))
-classifier.add(Dropout(0.25))
+#classifier.add(Dropout(0.25))
 
-classifier.add(Conv2D(128, (3, 3), padding='same'))
+classifier.add(Conv2D(32, (3,3), input_shape=(img_size, img_size, 1)))
 classifier.add(Activation("relu"))
 classifier.add(BatchNormalization(axis=-1))
-classifier.add(Conv2D(128, (3, 3), padding='same'))
+
+
+classifier.add(Conv2D(64, (3,3), padding='same'))
 classifier.add(Activation("relu"))
 classifier.add(BatchNormalization(axis=-1))
+#classifier.add(Conv2D(64, (3, 3), padding='same'))
+#classifier.add(Activation("relu"))
+#classifier.add(BatchNormalization(axis=-1))
 classifier.add(MaxPooling2D(pool_size=(2, 2)))
 classifier.add(Dropout(0.25))
 
 
 classifier.add(Flatten())
-classifier.add(Dense(1024))
+classifier.add(Dense(128))
 classifier.add(Activation("relu"))
 classifier.add(BatchNormalization())
 classifier.add(Dropout(0.5))
@@ -93,6 +97,6 @@ with open("class_indices.txt", "w") as indices_fine:
     indices_fine.write("training_set indices:\n"+str(training_set.class_indices))
     indices_fine.write("test_set indices:\n"+str(test_set.class_indices))
 
-classifier.fit_generator(training_set,steps_per_epoch = 8000,epochs = 20,validation_data = test_set,validation_steps = 2000, shuffle=True)
+classifier.fit_generator(training_set,steps_per_epoch = 8000,epochs = 15,validation_data = test_set,validation_steps = 2000, shuffle=True)
 
 classifier.save("arrow_classifier_keras_gray.h5")

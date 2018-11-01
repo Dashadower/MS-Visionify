@@ -10,10 +10,11 @@ from keras.models import load_model
 from keras import backend as K
 from tensorflow import Session, ConfigProto, GPUOptions
 # Use GPU Mode TF
-gpuoptions = GPUOptions(allow_growth=True)
+"""gpuoptions = GPUOptions(allow_growth=True)
 session = Session(config=ConfigProto(gpu_options=gpuoptions))
 K.set_session(session)
 # End Use GPU Mode TF
+"""
 model = load_model("arrow_classifier_keras_gray.h5")
 model.compile(optimizer = "adam", loss = 'categorical_crossentropy', metrics = ['accuracy'])
 model.load_weights("arrow_classifier_keras_gray.h5")
