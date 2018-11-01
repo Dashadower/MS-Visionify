@@ -10,3 +10,5 @@ Currently the bot uses OpenCV to find features from the game screen and use Dire
 * pywin32
 * PIL(Pillow)
 * pythoncom, pyHook (optional, for debugging)
+* tensorflow
+* Keras
