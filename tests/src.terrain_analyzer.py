@@ -7,8 +7,7 @@ scrp = StaticImageProcessor(wincap)
 scrp.update_image()
 area = scrp.get_minimap_rect()
 pathextractor = PathAnalyzer()
-
-
+print(area)
 while True:
     scrp.update_image(set_focus=False)
     #print("minimap area", area)
@@ -19,17 +18,15 @@ while True:
         if playerpos != 0:
             pathextractor.input(playerpos[0], playerpos[1])
 
-
-        cropped_img = cv2.cvtColor(scrp.rgb_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]], cv2.COLOR_BGR2RGB)
+        print(pathextractor.platforms.items())
+        cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
 
         if pathextractor.platforms:
-            for platform in pathextractor.platforms:
-                cv2.line(cropped_img,platform[0], platform[1],(0,255,0), 2)
+            for key, platform in pathextractor.platforms.items():
+                cv2.line(cropped_img,(platform.start_x, platform.start_y), (platform.end_x, platform.end_y),(0,255,0), 2)
 
-        if pathextractor.ladders:
-            for ladder in pathextractor.ladders:
-                cv2.line(cropped_img, ladder[0], ladder[1], (0,0,255), 2)
         cropped_img = imutils.resize(cropped_img, width=500)
+
         cv2.imshow("test",cropped_img)
 
     inp = cv2.waitKey(1)

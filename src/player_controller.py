@@ -3,19 +3,31 @@ import time, math
 # simple jump vertical distance: about 6 pixels
 
 class PlayerController:
-    def __init__(self, key_mgr, cpos_handler):
+    """
+    This class keeps track of character location and manages advanced movement and attacks.
+    """
+    def __init__(self, key_mgr, screen_handler):
+        """
+        Class Variables:
+        self.x: Known player minimap x coord. Needs to be updated manually
+        self.x: Known player minimap y coord. Needs tobe updated manually
+        self.key_mgr: handle to KeyboardInputManager
+        self.screen_processor: handle to StaticImageProcessor
+        self.goal_x: If moving, destination x coord
+        self.goal_y: If moving, destination y coord
+        self.busy: True if current class is calling blocking calls or in a loop
+        :param key_mgr: Handle to KeyboardInputManager
+        :param screen_handler: Handle to StaticImageProcessor. Only used to call find_player_minimap_marker
+        """
         self.x = None
         self.y = None
 
         self.key_mgr = key_mgr
-        self.cpos_handler = cpos_handler
+        self.screen_processor = screen_handler
         self.goal_x = None
         self.goal_y = None
 
         self.busy = False
-        self.mode = None
-
-
 
         self.finemode_limit = 4
         self.horizontal_goal_offset = 5
@@ -25,13 +37,12 @@ class PlayerController:
         self.horizontal_jump_distance = 10
         self.horizontal_jump_height = 9
 
-
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
         """Quadratic jump curve simulation
-        : param coord_x : x input in function f(x)
-        : param start_x : start x coordinate of jump
-        : param start_y : start y coordinate of jump
-        : param orient : direction of jump, either jmpr or jmpl"""
+        :param coord_x : x input in function f(x)
+        :param start_x : start x coordinate of jump
+        :param start_y : start y coordinate of jump
+        :param orient : direction of jump, either jmpr or jmpl"""
         a = 0.3
         if orient == "jmpr":
             y = a * ((coord_x - (start_x+self.horizontal_jump_distance/2)) ** 2) + start_y - self.horizontal_jump_height
@@ -43,10 +54,11 @@ class PlayerController:
         return 0
 
     def quadratic_platform_jump(self, goal_platform, jmp_range_start, jmp_range_end, **kwargs):
-        """Use quadratic to simulate jump and determine x coordinate required to move
-        : param goal_coord : tuple((x,y), (x,y)) of goal platform start and end
-        : param jmp_range_start : tuple(x,y) of minimum movable current platform
-        : param jmp_range_end : tuple(x,y) of maximum movable current platform"""
+        """
+        Use quadratic to simulate jump and determine x coordinate required to move
+        :param goal_coord : tuple((x,y), (x,y)) of goal platform start and end
+        :param jmp_range_start : tuple(x,y) of minimum movable current platform
+        :param jmp_range_end : tuple(x,y) of maximum movable current platform"""
 
         # to determine which end we are going to use as goal coordinate, calculate SED of each point
         d1 = (self.x-goal_platform[0][0]) ** 2
@@ -144,7 +156,13 @@ class PlayerController:
         self.key_mgr.reset()
 
     def horizontal_move_goal(self, goal_x):
-        current_x = self.cpos_handler()[0]
+        """
+        Blocking call to move from current x position(self.x) to goal_x. Only counts x coordinates.
+        Refactor notes: This function references self.screen_processor
+        :param goal_x: goal x coordinates
+        :return: None
+        """
+        current_x = self.x
         if goal_x - current_x > 0:
             # need to go right:
             mode = "r"
@@ -153,32 +171,7 @@ class PlayerController:
             mode = "l"
         else:
             return 0
-        """?if abs(goal_x - self.x) >= self.demonstrike_min_distance:
-            if mode == "r":
-                self.key_mgr.single_press(DIK_RIGHT)
-                time.sleep(0.05)
-                while True:
-                    self.image_handler.update_image()
-                    self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
-                    print(goal_x, self.x)
-                    self.key_mgr.single_press(DIK_1)
-                    if abs(goal_x - self.x) <= self.demonstrike_min_distance or goal_x <= self.x:
-                        break
-                    time.sleep(0.2)
-            elif mode == "l":
-                self.key_mgr.single_press(DIK_LEFT)
-                time.sleep(0.05)
-                while True:
-                    self.image_handler.update_image()
-                    self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)[0]
-                    print(goal_x, self.x)
-                    self.key_mgr.single_press(DIK_1)
-                    if abs(goal_x - self.x) <= self.demonstrike_min_distance or goal_x >= self.x:
-                        break
-                    time.sleep(0.2)"""
 
-
-        
         if mode == "r":
             # need to go right:
             self.key_mgr._direct_press(DIK_RIGHT)
@@ -186,7 +179,7 @@ class PlayerController:
             # need to go left:
             self.key_mgr._direct_press(DIK_LEFT)
         while True:
-            self.x = self.cpos_handler()[0]
+            self.update(self.screen_processor.find_player_minimap_marker())
             if not self.x:
                 assert 1 == 0, "horizontal_move goal: failed to recognize coordinates"
 
@@ -199,8 +192,6 @@ class PlayerController:
                     self.key_mgr._direct_release(DIK_LEFT)
                     break
         self.key_mgr.reset()
-
-
 
     def dbljump_max(self):
         """Warining: is a blocking call"""
@@ -229,6 +220,7 @@ class PlayerController:
         self.key_mgr._direct_press(DIK_UP)
         time.sleep(0.01)
         self.key_mgr._direct_release(DIK_UP)
+
     def jumpl(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)
@@ -311,15 +303,13 @@ class PlayerController:
         self.key_mgr._direct_release(DIK_DOWN)
         self.key_mgr._direct_release(DIK_ALT)
 
-    def update(self, pcoord):
-        self.x, self.y = pcoord
-        if self.goal_x and self.mode == "r":
-            if self.x >= self.goal_x:
-                self.busy = False
-                self.key_mgr.reset()
-        elif self.goal_x and self.mode == "l":
-            if self.x <= self.goal_x:
-                self.key_mgr.reset()
-                self.busy = False
+    def update(self, player_coords_x, player_coords_y):
+        """
+        Updates self.x, self.y to input coordinates
+        :param player_coords_x: Coordinates to update self.x
+        :param player_coords_y: Coordinates to update self.y
+        :return: None
+        """
+        self.x, self.y = player_coords_x, player_coords_y
 
 

@@ -2,8 +2,16 @@ import cv2, json, os
 import numpy as np
 
 class MonsterTemplateDetector:
-    """Time consuming matchTemplate based mob detector. Uses reference images to compare image screen"""
+    """
+    Match specific images on screen using cv MatchTemplate.
+    """
     def __init__(self, mob_data_path):
+        """
+        Class Variables:
+        self.template: cv image object for template
+        self.template_flipped: self.templated flipped on Y axis
+        :param mob_data_path: path to mob data file.
+        """
         self.template = None
         self.template_flipped = None
         self.template_calibrated_xcoords = None

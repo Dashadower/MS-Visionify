@@ -58,18 +58,28 @@ def ReleaseKey(hexKeyCode):
 
 
 class KeyboardInputManager:
-    """Manage keyboard input by using 2 states
-    state 0: key is not pressed and up
-    state 1: key is down and pressed"""
+    """
+    This is an attempt to manage input from a single source. It remembers key "states" , which consists of keypress
+    modifications, and actuates them in a single batch.
+    """
     def __init__(self, debug=False):
-        """dict key_state : list of keycodes with either 0 or 1 as value. Indicates whether the use wants to change the value of keycodes
-        dict actual_key_state: list of keycodes with states as value where the key is actually pressed.
-         Differences between this dict and key_state can be used to determine whether the key should be pressed or released"""
+        """
+        Class variables:
+        self.key_state: Temporary state dictionary before being actuated. Dictionary with DIK key names as keys with
+        0 or 1 as keys (0 for release, 1 for press)
+        self.actual_key_state: Actual key state dictionary. This dictionary is used to keep track of which keys are
+        currently being pressed. Same format as self.key_state
+        :param debug: Debug flag
+        """
         self.key_state = {}
         self.actual_key_state = {}
         self.debug = debug
 
     def get_key_state(self, key_code=None):
+        """
+        Returns key state or states of current manager state
+        :param key_code : DIK key name of key to look up. Please refer to directinput_constants.py. If undefined, returns enture key state
+        :return: None"""
         if key_code:
             if key_code in self.key_state.keys():
                 return self.key_state[key_code]
@@ -79,14 +89,30 @@ class KeyboardInputManager:
             return self.key_state
 
     def set_key_state(self, key_code, value):
+        """
+        Explicitly sets key state for key_code by value
+        :param key_code: DIK Key name of keycode
+        :param value: 0 for released, 1 for pressed
+        :return: None"""
         self.key_state[key_code] = value
 
     def single_press(self, key_code, duration=0.08):
+        """
+        Presses key_code for duration seconds. Since it uses time.sleep(), it is a blocking call.
+        :param key_code: DIK key code of key
+        :param duration: Float of keypress duration in seconds
+        :return: None
+        """
         self._direct_press(key_code)
         time.sleep(duration)
         self._direct_release(key_code)
 
     def translate_key_state(self):
+        """
+        Acuates key presses in self.key_state to self.actual_key_state by pressing keys and storing state in self.actual_key_state
+        self.actual_key_state becomes self.key_state, and self.key_state will get reset
+        :return: None
+        """
         for keycode, state in self.key_state.items():
             if keycode in self.actual_key_state.keys():
                 if self.actual_key_state[keycode] != state:
@@ -104,6 +130,8 @@ class KeyboardInputManager:
                     ReleaseKey(keycode)
                     self.actual_key_state[keycode] = 0
 
+        self.key_state = {}
+
     def _direct_press(self, key_code):
         PressKey(key_code)
         #self.actual_key_state[key_code] = 1
@@ -113,6 +141,10 @@ class KeyboardInputManager:
         #self.actual_key_state[key_code] = 0
 
     def reset(self):
+        """
+        Safe way of releasing all keys and resetting all states.
+        :return: None
+        """
         for keycode, state in self.key_state.items():
             if keycode in self.actual_key_state.keys():
                 self.key_state[keycode] = 0

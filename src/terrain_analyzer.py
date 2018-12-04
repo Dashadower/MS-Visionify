@@ -1,23 +1,56 @@
-import math, pickle, os
+import math, pickle, os, hashlib, random
 
+"""
+PlatformScan, graph based least-visited-node-first traversal algorithm
+Let map(V,E) be a directed cyclic graph
+function traverse(from, to):
+    from[to].visited = 1
+    map[to].last_visit = 0
+    for node in map:
+        node.last_visit += 1
+    need_reset = True
+    for vert in from.vertices:
+        if vert.visited == 0:
+            need_reset = False
+            break
+    
+    if need_reset:
+        for vert in from.vertices:
+            vert.visited = 0
+
+function select(current_node):
+    for vert in sorted(current_node.vertices, key=lambda x:vert.last_visit):
+        if vert.visited = 0:
+            return vert
+    """
+
+
+class Platform:
+    def __init__(self, start_x = None, start_y = None, end_x = None, end_y = None, last_visit = None, solutions = None, hash = None):
+        self.start_x = start_x
+        self.start_y = start_y
+        self.end_x = end_x
+        self.end_y = end_y
+        self.last_visit = last_visit # list of a list: [solution, 0]
+        self.solutions = solutions
+        self.hash = hash
 
 class PathAnalyzer:
-    """Class to process map terrain and parse information from coordinates
-    Commonly used terms:
-    Instance platform: member of list self.platforms format: [(x1, y1), (x2,y2)] of a platform. Used as key
-        to identify indivual platforms."""
+    """Converts minimap player coordinates to terrain information like ladders and platforms."""
     def __init__(self):
-        """Difference between platforms and oneway_platforms
-        platforms can be navigation mapped to other platforms, but to to oneway_platforms
-        oneway_platforms can be navigation mapped only to platforms, and not to other oneway_platforms"""
-        self.platforms = [] # Format: [(x1, y1), (x2, y2)] (x1<x2)
-        self.oneway_platforms = []
+        """
+        Difference between self.platforms and self.oneway_platforms: platforms can be a destination and an origin.
+        However, oneway_platforms can only be an origin. oneway_platforms can be used to detect when player goes out of bounds.
+        self.platforms: list of tuples, where tuple[0] is starting coordinate of platform, tuple[1] is end coordinate.
+
+        """
+        self.platforms = {} # Format: hash, Platform()
+        self.oneway_platforms = {}
         self.ladders = []
         self.visited_coordinates = []
         self.current_platform_coords = []
         self.current_oneway_coords = []
         self.current_ladder_coords = []
-        self.navigation_map = {}  # {((10,20),(15,20)):{[(((18,18),(25,18)),(15,20), (15,20), "jumpr"),0]}}
         self.last_x = None
         self.last_y = None
         self.movement = None
@@ -51,29 +84,49 @@ class PathAnalyzer:
                 minimap_coords = data["minimap"]
             return minimap_coords 
 
+    def hash(self, data):
+        """
+        Returns salted md5 hash of data
+        :param data: String to be hashed
+        :return: hexdigest string MD5 hash
+        """
+        d_hash = hashlib.md5()
+        d_hash.update((str(data) + str(random.random())).encode())
+        return str(d_hash.hexdigest())
+
     def calculate_navigation_map(self):
         """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
-        for platform in self.platforms+self.oneway_platforms:
-            croutes = []
-            available_routes = self.find_available_moves(platform)
-            for route in available_routes:
-                croutes.append([route, 0])
-            self.navigation_map[platform] = croutes
+        for key, platform in self.platforms:
+            self.find_available_moves(platform)
+        for key, platform in self.oneway_platforms:
+            self.find_available_moves(platform)
+
 
     def move_platform(self, from_platform, to_platform):
         """Update navigation map visit counter to keep track of visited platforms when moded
-        :param from_platform: departing platform instance
-        :param to_platform: destination platform instance"""
-        for key in self.navigation_map.keys():
-            need_reset = True
-            for route in self.navigation_map[key]:
-                if route[0] == to_platform:
-                    route[2] = 1
-                if route[2] == 0:
+        :param from_platform: departing platform hash
+        :param to_platform: destination platform hash"""
+
+        need_reset = True
+        for method in self.platforms[from_platform].solutions:
+            solution = method[0]
+            if solution["hash"] == to_platform:
+                self.platforms[solution["hash"]].last_visit = 0
+                method[1] = 1
+                break
+            else:
+                if method[1] == 0:
                     need_reset = False
-            if need_reset:
-                for route in self.navigation_map[key]:
-                    route[2] = 0
+
+        for key, platform in self.platforms.items():
+            if key != to_platform:
+                self.platforms[key].last_visit += 1
+        if need_reset:
+            for method in self.platforms[from_platform].solutions:
+                method[1] = 0
+
+
+
 
     def input_oneway_platform(self, inp_x, inp_y):
         """input values to use in finding one way(platforms which can't be a destination platform)
@@ -95,8 +148,9 @@ class PathAnalyzer:
             if len(self.current_oneway_coords) >= self.minimum_platform_length:
                 platform_start = min(self.current_oneway_coords, key=lambda x: x[0])
                 platform_end = max(self.current_oneway_coords, key=lambda x: x[0])
-
-                self.oneway_platforms.append((platform_start, platform_end))
+                d_hash = self.hash(str(platform_start))
+                self.oneway_platforms[d_hash] = Platform(platform_start[0], platform_start[1], platform_end[0],
+                                                  platform_end[1], 0, [], d_hash)
             self.current_oneway_coords = []
             if converted_tuple not in self.visited_coordinates:
                 self.current_oneway_coords.append(converted_tuple)
@@ -127,7 +181,9 @@ class PathAnalyzer:
                 platform_start = min(self.current_platform_coords, key=lambda x: x[0])
                 platform_end = max(self.current_platform_coords, key=lambda x: x[0])
 
-                self.platforms.append((platform_start, platform_end))
+                d_hash = self.hash(str(platform_start))
+                self.platforms[d_hash] = Platform(platform_start[0], platform_start[1], platform_end[0], platform_end[1], 0, [], d_hash)
+
             self.current_platform_coords = []
             if converted_tuple not in self.visited_coordinates:
                 self.current_platform_coords.append(converted_tuple)
@@ -152,8 +208,8 @@ class PathAnalyzer:
 
     def find_available_moves(self, platform):
         """Find relationships between platform, like how one platform links to another using movement.
-        : param platform : platform item in self.platforms (tuple of 2 coordinate tuples)
-        : return : list [destination_platform, (x1, y1), (x2, y2), method] where
+        :param platform : platform item in self.platforms Platform class
+        :return : None
         destination_platform : platform object in self.platforms which is the destination
         x, y : coordinate area where the method can be used (x1<=coord_x<=x2, y1<=coord_y<=y2)
         method : movement method string
@@ -166,42 +222,49 @@ class PathAnalyzer:
 
         return_map_dict = []
 
-        for other_platform in self.platforms:
-            if platform != other_platform:
+        for key, other_platform in self.platforms.items():
+            if platform.hash != other_platform:
                 # 1. Detect vertical overlaps
-                if platform[0][0] < other_platform[1][0] and platform[1][0] > other_platform[0][0] or \
-                        platform[0][0] > other_platform[0][0] and platform[0][0] < other_platform[1][0]:
-                    lower_bound_x = max(platform[0][0], other_platform[0][0])
-                    upper_bound_x = min(platform[1][0], other_platform[1][0])
-                    if platform[0][1] < other_platform[1][1]:
+                if platform.start_x < other_platform.end_x and platform.end_x > other_platform.start_x or \
+                        platform.start_x > other_platform.start_x and platform.start_x < other_platform.end_x:
+                    lower_bound_x = max(platform.start_x, other_platform.start_x)
+                    upper_bound_x = min(platform.end_x, other_platform.end_x)
+                    if platform.start_y < other_platform.end_y:
                         # Platform is higher than current_platform. Thus we can just drop
-                        solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "drop"]
-                        return_map_dict.append(solution)
+                        solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"drop"}
+                        platform.solutions.append([solution, 0])
                     else:
                         # We need to use double jump to get there, but first check if within jump height
-                        if abs(platform[0][1] - other_platform[0][1]) <= self.dbljump_half_height:
-                            solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "dbljmp_half"]
-                            return_map_dict.append(solution)
-                        elif abs(platform[0][1] - other_platform[0][1]) <= self.dbljump_half_height:
-                            solution = [other_platform, (lower_bound_x, platform[0][1]), (upper_bound_x, platform[0][1]), "dbljmp_max"]
-                            return_map_dict.append(solution)
+                        if abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
+                            solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"dbljmp_half"}
+                            platform.solutions.append([solution, 0])
+                        elif abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
+                            solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y),
+                                        "upper_bound": (upper_bound_x, platform.start_y), "method": "dbljmp_max"}
+                            platform.solutions.append([solution, 0])
                 else:
                     # 2. No vertical overlaps. Calculate euclidean distance between each platform endpoints
-                    front_point_distance = math.sqrt((platform[0][0]-other_platform[1][0])**2 + (platform[0][1]-other_platform[1][1])**2)
+                    front_point_distance = math.sqrt((platform.start_x-other_platform.end_x)**2 + (platform.start_y-other_platform.end_y)**2)
                     if front_point_distance <= self.jump_range:
                         # We can jump from the left end of the platform to goal
-                        solution = [other_platform, (platform[0][0], platform[0][1]), (platform[0][0], platform[0][1]), "jmpl"]
-                        return_map_dict.append(solution)
-                    back_point_distance = math.sqrt((platform[1][0]-other_platform[0][0])**2 + (platform[1][1]-other_platform[0][1])**2)
+                        solution = {"hash":key, "lower_bound":(platform.start_x, platform.start_y), "upper_bound":(platform.start_x, platform.start_y), "method":"jmpl"}
+                        platform.solutions.append([solution, 0])
+
+                    back_point_distance = math.sqrt((platform.end_x-other_platform.start_x)**2 + (platform.end_y-other_platform.start_y)**2)
                     if back_point_distance <= self.jump_range:
                         # We can jump fomr the right end of the platform to goal platform
-                        solution = [other_platform, (platform[1][0], platform[1][1]), (platform[1][0], platform[1][1]), "jmpr"]
-                        return_map_dict.append(solution)
+                        solution = {"hash":other_platform, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr"}
+                        platform.solutions.append([solution, 0])
 
-        return return_map_dict
+
 
     def reset(self):
-        self.platforms = []
+        """
+        Reset all platform data to default
+        :return: None
+        """
+        self.platforms = {}
+        self.oneway_platforms = {}
         self.visited_coordinates = []
         self.current_platform_coords = []
         self.current_ladder_coords = []

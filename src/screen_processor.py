@@ -15,12 +15,12 @@ MAPLESTORY_WINDOW_TITLE = "MapleStory"
 class MapleScreenCapturer:
     """Container for capturing MS screen"""
     def __init__(self):
-        pass
+        self.hwnd = None
 
     def ms_get_screen_hwnd(self):
         window_hwnd = win32gui.FindWindow(0, MAPLESTORY_WINDOW_TITLE)
         if not window_hwnd:
-            raise MapleWindowNotFoundError("Could not find MapleStory window")
+            return 0
         else:
             return window_hwnd
 
@@ -29,14 +29,18 @@ class MapleScreenCapturer:
 
     def capture(self, set_focus=True, hwnd=None, rect=None):
         """Returns Maplestory window screenshot handle(not np.array!)
-        : param set_focus boolean : True if MapleStory window is to be focusesd before capture, False if not
-        : return : returns Imagegrab of screen"""
+        :param set_focus : True if MapleStory window is to be focusesd before capture, False if not
+        :param hwnd : Default: None Win32API screen handle to use. If None, sets and uses self.hwnd
+        :param hwnd : If defined, captures specificed ScreenRect area. Else, uses MS window rect.
+        :return : returns Imagegrab of screen (PIL Image)"""
+        if hwnd:
+            self.hwnd = hwnd
         if not hwnd:
-            hwnd = self.ms_get_screen_hwnd()
+            self.hwnd = self.ms_get_screen_hwnd()
         if not rect:
-            rect = self.ms_get_screen_rect(hwnd)
+            rect = self.ms_get_screen_rect(self.hwnd)
         if set_focus:
-            win32gui.SetForegroundWindow(hwnd)
+            win32gui.SetForegroundWindow(self.hwnd)
             time.sleep(0.1)
         img = ImageGrab.grab(rect)
         if img:
@@ -47,6 +51,10 @@ class MapleScreenCapturer:
 
 class StaticImageProcessor:
     def __init__(self, img_handle=None):
+        """
+
+        :param img_handle: handle to MapleScreenCapturer
+        """
         self.img_handle = img_handle
         self.bgr_img = None
         self.bin_img = None
@@ -63,7 +71,10 @@ class StaticImageProcessor:
         self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
 
     def update_image(self, src=None, set_focus=True, update_rect=False):
-        """src: rgb image data from PIL ImageGrab"""
+        """
+        Calls ScreenCapturer's update function and updates images.
+        :param src : rgb image data from PIL ImageGrab
+        :param set_focus : True if win32api setfocus shall be called before capturing"""
         if src:
             rgb_img = src
         else:
@@ -78,6 +89,10 @@ class StaticImageProcessor:
 
 
     def get_minimap_rect(self):
+        """
+        Processes self.gray images, returns minimap bounding box
+        :return: Array [x,y,w,h] bounding box of minimap if found, else 0
+        """
         cropped = self.gray_img[self.default_minimap_scan_area[1]:self.default_minimap_scan_area[3], self.default_minimap_scan_area[0]:self.default_minimap_scan_area[2]]
         blurred_img = cv2.GaussianBlur(cropped, (3,3), 3)
         morphed_img = cv2.erode(blurred_img, (7,7))
@@ -104,9 +119,18 @@ class StaticImageProcessor:
         return 0
 
     def reset_minimap_area(self):
+        """
+        Resets self.minimap_area which is used to reset self.get_minimap_rect search.
+        :return: None
+        """
         self.minimap_area = 0
 
     def find_player_minimap_marker(self, rect=None):
+        """
+        Processes self.bgr_image to return player coordinate on minimap.
+        :param rect: [x,y,w,h] bounding box of minimap in MapleStory screen. Call self.get_minimap_rect to obtain
+        :return: x,y coordinate of player if found, else 0
+        """
         if not rect:
             rect = self.get_minimap_rect()
         assert rect, "Invalid minimap coordinates"
@@ -128,6 +152,12 @@ class StaticImageProcessor:
         return 0
 
     def find_other_player_marker(self, rect=None):
+        """
+        Processes self.bgr_image to return coordinate of other players on minimap if exists.
+        Does not behave as expected when there are more than one other player on map. Use this function to just detect.
+        :param rect: [x,y,w,h] bounding box of minimap. Call self.get_minimap_rect
+        :return: x,y coord of marker if found, else 0
+        """
         if not rect:
             rect = self.get_minimap_rect()
         assert rect, "Invalid minimap coordinates"
@@ -149,6 +179,11 @@ class StaticImageProcessor:
         return 0
 
     def find_rune_marker(self, rect=None):
+        """
+        Processes self.bgr_image to return coordinates of rune marker on minimap.
+        :param rect: [x,y,w,h] bounding box of minimap. Call self.get_minimap_rect
+        :return: x,y of rune minimap coordinates if found, else 0
+        """
         if not rect:
             rect = self.get_minimap_rect()
         assert rect, "Invalid minimap coordinates"
