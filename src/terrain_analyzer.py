@@ -22,7 +22,7 @@ function select(current_node):
     for vert in sorted(current_node.vertices, key=lambda x:vert.last_visit):
         if vert.visited = 0:
             return vert
-    """
+"""
 
 
 class Platform:
@@ -101,7 +101,6 @@ class PathAnalyzer:
         for key, platform in self.oneway_platforms:
             self.find_available_moves(platform)
 
-
     def move_platform(self, from_platform, to_platform):
         """Update navigation map visit counter to keep track of visited platforms when moded
         :param from_platform: departing platform hash
@@ -125,7 +124,15 @@ class PathAnalyzer:
             for method in self.platforms[from_platform].solutions:
                 method[1] = 0
 
-
+    def select_move(self, current_platform):
+        """
+        Selects a solution from current_platform using PlatformScan
+        :param current_platform:
+        :return: solution
+        """
+        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x[0].hash].last_visit, reverse=True):
+            if solution[1] == 0:
+                return solution[0]
 
 
     def input_oneway_platform(self, inp_x, inp_y):

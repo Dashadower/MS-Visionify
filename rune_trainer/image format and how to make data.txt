@@ -1,6 +1,6 @@
 IMPORTANT: ALL IMAGE PROCESSING IS DONE AT RUNE_SCREEN_CAPTURE
 
-1. run rune_scree_capture. Will create cropped processed grayscale images of 4 rune markers
+1. run rune_screen_capture. Will create cropped processed grayscale images of 4 rune markers saves to image/screenshots
 2. run rune_dataset_classifier Will crop images to 4 circles and move them accordingly to images/cropped
 3. run move_traindata2test will move some images in images/cropped/traindata to testdata
 4. run trainer_keras

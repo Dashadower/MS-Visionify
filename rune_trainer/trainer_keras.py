@@ -25,7 +25,7 @@ from keras.layers import Activation
 from keras.layers import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
 from keras.optimizers import adam
-
+from keras.callbacks import TensorBoard
 from keras import backend as K
 from tensorflow import Session, ConfigProto, GPUOptions
 gpuoptions = GPUOptions(allow_growth=True)
@@ -34,29 +34,36 @@ K.set_session(session)
 classifier = Sequential()
 
 classifier.add(Conv2D(32, (3,3), input_shape=(img_size, img_size, 1)))
+classifier.add(BatchNormalization())
 classifier.add(Activation("relu"))
-classifier.add(BatchNormalization(axis=-1))
+
+classifier.add(Conv2D(32, (3,3)))
+classifier.add(BatchNormalization())
+classifier.add(Activation("relu"))
+classifier.add(MaxPooling2D(pool_size=(2, 2)))
 classifier.add(Dropout(0.25))
+#classifier.add(Dropout(0.25))
 
 classifier.add(Conv2D(64, (3,3), padding='same'))
+classifier.add(BatchNormalization())
 classifier.add(Activation("relu"))
-classifier.add(BatchNormalization(axis=-1))
 classifier.add(MaxPooling2D(pool_size=(2, 2)))
 classifier.add(Dropout(0.25))
 #classifier.add(Dropout(0.25))
 
 classifier.add(Flatten())
 classifier.add(Dense(128))
-classifier.add(Activation("relu"))
 classifier.add(BatchNormalization())
+classifier.add(Activation("relu"))
 classifier.add(Dropout(0.5))
 
 
 classifier.add(Dense(4))
+classifier.add(BatchNormalization())
 classifier.add(Activation("softmax"))
 
 
-classifier.compile(optimizer = adam(lr=1e-5), loss = 'categorical_crossentropy', metrics = ['accuracy'])
+classifier.compile(optimizer = adam(lr=1e-6), loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
 train_datagen = ImageDataGenerator(rotation_range=12)
 
@@ -79,7 +86,7 @@ with open("class_indices.txt", "w") as indices_fine:
     indices_fine.write("\n")
     indices_fine.write("training_set indices:\n"+str(training_set.class_indices))
     indices_fine.write("test_set indices:\n"+str(test_set.class_indices))
-
-classifier.fit_generator(training_set,steps_per_epoch = 8000,epochs = 5,validation_data = test_set,validation_steps = 2000, shuffle=True)
+tbCallBack = TensorBoard(log_dir='./log', histogram_freq=0, write_graph=True, write_images=True)
+classifier.fit_generator(training_set,steps_per_epoch = 8000,epochs = 15,validation_data = test_set,validation_steps = 2000, shuffle=True, callbacks=[tbCallBack])
 
 classifier.save("arrow_classifier_keras_gray.h5")

@@ -20,7 +20,7 @@ while True:
     img = cap.capture(set_focus=False)
     img_arr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     final_img = imutils.resize(img_arr, width = 200)
-    cv2.imshow("s to save image", final_img)
+    cv2.imshow("s to automatically save 3 images in a row, d for just one", final_img)
     inp = cv2.waitKey(1)
     if inp == ord("q"):
         cv2.destroyAllWindows()

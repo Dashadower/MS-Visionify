@@ -1,3 +1,6 @@
+"""
+Train data to test data splitter.
+"""
 # -*- coding:utf-8 -*-
 import os, glob, random
 os.chdir("images/cropped")

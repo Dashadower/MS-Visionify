@@ -1,3 +1,6 @@
+"""
+RGB to Grayscale batch converter.
+"""
 import os, cv2, glob
 
 categories = ["up", "down", "left", "right"]
