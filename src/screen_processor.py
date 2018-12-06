@@ -131,10 +131,10 @@ class StaticImageProcessor:
         :param rect: [x,y,w,h] bounding box of minimap in MapleStory screen. Call self.get_minimap_rect to obtain
         :return: x,y coordinate of player if found, else 0
         """
-        if not rect and not self.rect:
+        if not rect and not self.minimap_rect:
             rect = self.get_minimap_rect()
-        else:
-            rect = self.rect
+        elif not rect:
+            rect = self.minimap_rect
         assert rect, "Invalid minimap coordinates"
         cropped = self.bgr_img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
         mask = cv2.inRange(cropped, self.lower_player_marker, self.upper_player_marker)

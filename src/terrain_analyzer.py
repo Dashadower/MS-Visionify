@@ -70,7 +70,7 @@ class PathAnalyzer:
         :param filename: path to save file
         :param minimap_roi: tuple or list of onscreen minimap bounding box coordinates which will be saved"""
         with open(filename, "wb") as f:
-            pickle.dump({"platforms" : self.platforms, "oneway": self.oneway_platforms, "minimap" : minimap_roi}, f)
+            pickle.dump({"platforms" : self.platforms, "oneway": self.oneway_platforms, "minimap" : minimap_roi}, f, protocol=3)
 
     def load(self, filename="mapdata.platform"):
         """Open a map data file and load data from file

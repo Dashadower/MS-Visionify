@@ -103,9 +103,9 @@ class KeyboardInputManager:
         :param duration: Float of keypress duration in seconds
         :return: None
         """
-        self._direct_press(key_code)
+        self.direct_press(key_code)
         time.sleep(duration)
-        self._direct_release(key_code)
+        self.direct_release(key_code)
 
     def translate_key_state(self):
         """
@@ -132,13 +132,13 @@ class KeyboardInputManager:
 
         self.key_state = {}
 
-    def _direct_press(self, key_code):
+    def direct_press(self, key_code):
         PressKey(key_code)
-        #self.actual_key_state[key_code] = 1
+        self.actual_key_state[key_code] = 1
 
-    def _direct_release(self, key_code):
+    def direct_release(self, key_code):
         ReleaseKey(key_code)
-        #self.actual_key_state[key_code] = 0
+        self.actual_key_state[key_code] = 0
 
     def reset(self):
         """
@@ -148,6 +148,8 @@ class KeyboardInputManager:
         for keycode, state in self.key_state.items():
             if keycode in self.actual_key_state.keys():
                 self.key_state[keycode] = 0
+        for keycode, state in self.actual_key_state.items():
+            self.key_state[keycode] = 0
         self.translate_key_state()
 
 DEFAULT_KEY_MAP = {

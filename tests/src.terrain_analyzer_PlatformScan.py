@@ -1,11 +1,10 @@
-import sys
+import sys, os, time
 sys.path.append("../src")
-sys.path.append("C:\\Users\\Administrator\\PycharmProjects\\MacroStory")
-from src.terrain_analyzer import PathAnalyzer
-import time, os
+sys.path.append("C:\\Users\\tttll\\PycharmProjects\\MacroSTory")
+from terrain_analyzer import PathAnalyzer
 pathextractor = PathAnalyzer()
-pathextractor.load("C:\\Users\Administrator\\PycharmProjects\\MacroStory\\tests\\mapdata.platform")
-
+pathextractor.load("C:\\Users\\tttll\PycharmProjects\\MacroSTory\\tests\\mapdata.platform")
+print(__file__)
 print(pathextractor.platforms)
 pathextractor.calculate_navigation_map()
 for key, val in pathextractor.platforms.items():

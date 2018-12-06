@@ -40,9 +40,11 @@ class PlayerController:
         self.horizontal_jump_distance = 10
         self.horizontal_jump_height = 9
 
-        self.x_movement_enforce_rate = 15  # refer to optimized_horizontal_move
+        self.x_movement_enforce_rate = 10  # refer to optimized_horizontal_move
 
         self.moonlight_slash_x_range = 30  # exceed: moonlight slash's estimalte x hitbox range in minimap coords.
+
+
 
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
         """Quadratic jump curve simulation
@@ -109,42 +111,127 @@ class PlayerController:
         """
         Move from self.x to goal_x in as little time as possible. Uses multiple movement solutions for efficient paths. Blocking call
         :param goal_x: x coordinate to move to. This function only takes into account x coordinate movements.
-        :param ledge: If true, goal_x is an end of a platform, and additional movement solutions can be used. If not, precise movement is required.
+        :param ledge: If true, goal_x is an end of a platform, additional movement solutions can be used. If not, precise movement is required.
         :param enforce_time: If true, the function will stop moving after a time threshold is met and still haven't
-        met the goal. Default threshold is 15 minimap pixels per second.
+        met the goal. Default threshold is 15 minimap pixels per second. Fail-safe implementation.
         :return: None
         """
+        glide_threshold = 30
+        glide_goal_offset = 15
+        walk_goal_offset = 3
+
         loc_delta = self.x - goal_x
         abs_loc_delta = abs(loc_delta)
         start_time = time.time()
         if loc_delta < 0:
             # we need to move right
-            time_limit = math.ceil(loc_delta/self.x_movement_enforce_rate)
-            if abs_loc_delta <= 10:
-                # Just walk if distance is less than 10
-                self.key_mgr._direct_press(DIK_RIGHT)
-
-                # Below: use a loop to continously press right until goal is reached or time is up
+            time_limit = math.ceil(abs_loc_delta/self.x_movement_enforce_rate) + 1
+            if ledge:
+                self.key_mgr.single_press(DIK_RIGHT, 0.1)
                 while True:
-                    if time.time()-start_time > time_limit:
+                    if time.time()-start_time > time_limit and enforce_time:
                         break
+                    self.key_mgr.single_press(self.keymap["demon_strike"])
+                    self.screen_processor.update_image()
                     player_pos = self.screen_processor.find_player_minimap_marker()
-                    # Problem with synchonizing player_pos with self.x and self.y. Needs to get resolved.
-                    # Current solution: Just call self.update() (not good for redundancy)
+                    self.update(player_pos[0], player_pos[1])
                     if player_pos[0] >= goal_x:
+                        return 0  # We can just exit function since we demon strike stops on ledges
+            if abs_loc_delta <= glide_threshold:
+                # Just walk if distance is less than 10 pixels
+                self.key_mgr.direct_press(DIK_RIGHT)
+
+                # Below: use a loop to continuously press right until goal is reached or time is up
+                while True:
+                    if time.time()-start_time > time_limit and enforce_time:
+                        break
+                    self.screen_processor.update_image()
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    self.update(player_pos[0], player_pos[1])
+                    # Problem with synchronizing player_pos with self.x and self.y. Needs to get resolved.
+                    # Current solution: Just call self.update() (not good for redundancy)
+                    if player_pos[0] >= goal_x - walk_goal_offset:
                         # Reached or exceeded destination x coordinates
+                        print(player_pos, goal_x)
                         break
 
-                self.key_mgr._direct_release(DIK_RIGHT)
+                self.key_mgr.direct_release(DIK_RIGHT)
 
             else:
                 # Distance is quite big, so we glide
-                pass
+                # Note: Even if we release keys and stop gliding, MS keeps the character's momentum, so we need to stop prematurely
+                self.key_mgr.direct_press(DIK_RIGHT)
+                self.key_mgr.single_press(self.jump_key, 0.3)
+                self.key_mgr.direct_press(self.jump_key)
+                while True:
+                    if time.time()-start_time > time_limit and enforce_time:
+                        break
 
+                    self.screen_processor.update_image()
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    self.update(player_pos[0], player_pos[1])
+
+                    if player_pos[0] >= goal_x - glide_goal_offset:
+                        # I've set an explicit offset of 2 pixels but it needs adjustments by trial
+                        print("reached goal")
+                        break
+
+                self.key_mgr.direct_release(DIK_RIGHT)
+                self.key_mgr.direct_release(self.jump_key)
 
         elif loc_delta > 0:
-            # we are moving to the left
-            pass
+            # we need to move left
+            time_limit = math.ceil(abs_loc_delta / self.x_movement_enforce_rate) + 1
+            if ledge:
+                self.key_mgr.single_press(DIK_LEFT, 0.1)
+                while True:
+                    if time.time() - start_time > time_limit and enforce_time:
+                        break
+                    self.key_mgr.single_press(self.keymap["demon_strike"])
+                    self.screen_processor.update_image()
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    self.update(player_pos[0], player_pos[1])
+                    if player_pos[0] <= goal_x:
+                        return 0  # We can just exit function since we demon strike stops on ledges
+            if abs_loc_delta <= glide_threshold:
+                # Just walk if distance is less than 10 pixels
+                self.key_mgr.direct_press(DIK_LEFT)
+
+                # Below: use a loop to continuously press right until goal is reached or time is up
+                while True:
+                    if time.time() - start_time > time_limit and enforce_time:
+                        break
+                    self.screen_processor.update_image()
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    self.update(player_pos[0], player_pos[1])
+                    # Problem with synchronizing player_pos with self.x and self.y. Needs to get resolved.
+                    # Current solution: Just call self.update() (not good for redundancy)
+                    if player_pos[0] <= goal_x + walk_goal_offset:
+                        # Reached or exceeded destination x coordinates
+                        break
+
+                self.key_mgr.direct_release(DIK_LEFT)
+
+            else:
+                # Distance is quite big, so we glide
+                # Note: Even if we release keys and stop gliding, MS keeps the character's momentum, so we need to stop prematurely
+                self.key_mgr.direct_press(DIK_LEFT)
+                self.key_mgr.single_press(self.jump_key, 0.3)
+                self.key_mgr.direct_press(self.jump_key)
+                while True:
+                    if time.time() - start_time > time_limit and enforce_time:
+                        break
+
+                    self.screen_processor.update_image()
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    self.update(player_pos[0], player_pos[1])
+
+                    if player_pos[0] <= goal_x + glide_goal_offset:
+                        # I've set an explicit offset of 2 pixels but it needs adjustments by trial
+                        break
+
+                self.key_mgr.direct_release(DIK_LEFT)
+                self.key_mgr.direct_release(self.jump_key)
 
     def horizontal_move_goal(self, goal_x):
         """
@@ -165,10 +252,10 @@ class PlayerController:
 
         if mode == "r":
             # need to go right:
-            self.key_mgr._direct_press(DIK_RIGHT)
+            self.key_mgr.direct_press(DIK_RIGHT)
         elif mode == "l":
             # need to go left:
-            self.key_mgr._direct_press(DIK_LEFT)
+            self.key_mgr.direct_press(DIK_LEFT)
         while True:
             self.update(self.screen_processor.find_player_minimap_marker())
             if not self.x:
@@ -176,123 +263,123 @@ class PlayerController:
 
             if mode == "r":
                 if self.x >= goal_x-self.horizontal_goal_offset:
-                    self.key_mgr._direct_release(DIK_RIGHT)
+                    self.key_mgr.direct_release(DIK_RIGHT)
                     break
             elif mode == "l":
                 if self.x <= goal_x+self.horizontal_goal_offset:
-                    self.key_mgr._direct_release(DIK_LEFT)
+                    self.key_mgr.direct_release(DIK_LEFT)
                     break
         self.key_mgr.reset()
 
     def dbljump_max(self):
         """Warining: is a blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_UP)
+        self.key_mgr.direct_press(DIK_UP)
         time.sleep(0.01)
-        self.key_mgr._direct_release(DIK_UP)
+        self.key_mgr.direct_release(DIK_UP)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_UP)
+        self.key_mgr.direct_press(DIK_UP)
         time.sleep(0.01)
-        self.key_mgr._direct_release(DIK_UP)
+        self.key_mgr.direct_release(DIK_UP)
 
     def dbljump_half(self):
         """Warining: is a blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.23)
-        self.key_mgr._direct_press(DIK_UP)
+        self.key_mgr.direct_press(DIK_UP)
         time.sleep(0.01)
-        self.key_mgr._direct_release(DIK_UP)
+        self.key_mgr.direct_release(DIK_UP)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_UP)
+        self.key_mgr.direct_press(DIK_UP)
         time.sleep(0.01)
-        self.key_mgr._direct_release(DIK_UP)
+        self.key_mgr.direct_release(DIK_UP)
 
     def jumpl(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_LEFT)
+        self.key_mgr.direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_LEFT)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_LEFT)
+        self.key_mgr.direct_release(DIK_ALT)
 
     def jumpl_double(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_LEFT)
+        self.key_mgr.direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_LEFT)
+        self.key_mgr.direct_release(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_LEFT)
+        self.key_mgr.direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_LEFT)
+        self.key_mgr.direct_release(DIK_LEFT)
 
     def jumpl_glide(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_LEFT)
+        self.key_mgr.direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.15)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.2)
-        self.key_mgr._direct_release(DIK_ALT)
-        self.key_mgr._direct_release(DIK_LEFT)
+        self.key_mgr.direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_LEFT)
 
     def jumpr(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_RIGHT)
+        self.key_mgr.direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_RIGHT)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_RIGHT)
+        self.key_mgr.direct_release(DIK_ALT)
 
     def jumpr_double(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_RIGHT)
+        self.key_mgr.direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_RIGHT)
+        self.key_mgr.direct_release(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_RIGHT)
+        self.key_mgr.direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_RIGHT)
+        self.key_mgr.direct_release(DIK_RIGHT)
 
 
     def jumpr_glide(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_RIGHT)
+        self.key_mgr.direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.15)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.2)
-        self.key_mgr._direct_release(DIK_ALT)
-        self.key_mgr._direct_release(DIK_RIGHT)
+        self.key_mgr.direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_RIGHT)
 
     def drop(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_DOWN)
+        self.key_mgr.direct_press(DIK_DOWN)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr.direct_press(DIK_ALT)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_DOWN)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr.direct_release(DIK_DOWN)
+        self.key_mgr.direct_release(DIK_ALT)
 
     def update(self, player_coords_x, player_coords_y):
         """
