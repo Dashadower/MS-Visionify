@@ -61,7 +61,7 @@ class PathAnalyzer:
         self.minimum_platform_length = 10  # Minimum x length of coordinates to be logged as a platform by input()
         self.minimum_ladder_length = 5  # Minimum y length of coordinated to be logged as a ladder by input()
 
-        self.doublejump_max_height = 31  # total absolute jump height is about 31, but take account platform size
+        self.dbljump_max_height = 31  # total absolute jump height is about 31, but take account platform size
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
         self.dbljump_half_height = 20  # absolute jump height of a half jump. Used for generating navigation map
 
@@ -92,14 +92,14 @@ class PathAnalyzer:
         """
         d_hash = hashlib.md5()
         d_hash.update((str(data) + str(random.random())).encode())
-        return str(d_hash.hexdigest())
+        return str(d_hash.hexdigest())[:8]
 
     def calculate_navigation_map(self):
         """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
-        for key, platform in self.platforms:
-            self.find_available_moves(platform)
-        for key, platform in self.oneway_platforms:
-            self.find_available_moves(platform)
+        for key, platform in self.platforms.items():
+            self.find_available_moves(key)
+        for key, platform in self.oneway_platforms.items():
+            self.find_available_moves(key)
 
     def move_platform(self, from_platform, to_platform):
         """Update navigation map visit counter to keep track of visited platforms when moded
@@ -112,7 +112,7 @@ class PathAnalyzer:
             if solution["hash"] == to_platform:
                 self.platforms[solution["hash"]].last_visit = 0
                 method[1] = 1
-                break
+
             else:
                 if method[1] == 0:
                     need_reset = False
@@ -130,7 +130,7 @@ class PathAnalyzer:
         :param current_platform:
         :return: solution
         """
-        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x[0].hash].last_visit, reverse=True):
+        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x[0]["hash"]].last_visit, reverse=True):
             if solution[1] == 0:
                 return solution[0]
 
@@ -213,9 +213,9 @@ class PathAnalyzer:
         self.last_x = inp_x
         self.last_y = inp_y
 
-    def find_available_moves(self, platform):
+    def find_available_moves(self, hash):
         """Find relationships between platform, like how one platform links to another using movement.
-        :param platform : platform item in self.platforms Platform class
+        :param platform : platform hash in self.platforms Platform
         :return : None
         destination_platform : platform object in self.platforms which is the destination
         x, y : coordinate area where the method can be used (x1<=coord_x<=x2, y1<=coord_y<=y2)
@@ -228,9 +228,10 @@ class PathAnalyzer:
         """
 
         return_map_dict = []
-
+        platform = self.platforms[hash]
+        platform.solutions = []
         for key, other_platform in self.platforms.items():
-            if platform.hash != other_platform:
+            if platform.hash != key:
                 # 1. Detect vertical overlaps
                 if platform.start_x < other_platform.end_x and platform.end_x > other_platform.start_x or \
                         platform.start_x > other_platform.start_x and platform.start_x < other_platform.end_x:
@@ -245,7 +246,7 @@ class PathAnalyzer:
                         if abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
                             solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"dbljmp_half"}
                             platform.solutions.append([solution, 0])
-                        elif abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
+                        elif abs(platform.start_y - other_platform.start_y) <= self.dbljump_max_height:
                             solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y),
                                         "upper_bound": (upper_bound_x, platform.start_y), "method": "dbljmp_max"}
                             platform.solutions.append([solution, 0])
@@ -260,7 +261,7 @@ class PathAnalyzer:
                     back_point_distance = math.sqrt((platform.end_x-other_platform.start_x)**2 + (platform.end_y-other_platform.start_y)**2)
                     if back_point_distance <= self.jump_range:
                         # We can jump fomr the right end of the platform to goal platform
-                        solution = {"hash":other_platform, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr"}
+                        solution = {"hash":key, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr"}
                         platform.solutions.append([solution, 0])
 
 

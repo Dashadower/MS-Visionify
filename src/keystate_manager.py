@@ -150,6 +150,14 @@ class KeyboardInputManager:
                 self.key_state[keycode] = 0
         self.translate_key_state()
 
+DEFAULT_KEY_MAP = {
+    "jump": dic.DIK_ALT,
+    "moonlight_slash": dic.DIK_A,
+    "thousand_sword": dic.DIK_F,
+    "release_overload": dic.DIK_Q,
+    "demon_strike": dic.DIK_1
+}
+
 class AdvancedThreadedKeyboardHandler(KeyboardInputManager):
     def __init__(self, tickrate=0.01):
         super().__init__()

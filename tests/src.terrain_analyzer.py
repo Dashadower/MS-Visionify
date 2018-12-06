@@ -37,3 +37,6 @@ while True:
         scrp.reset_minimap_area()
         area = scrp.get_minimap_rect()
         pathextractor.reset()
+
+    elif inp == ord("s"):
+        pathextractor.save("mapdata.platform", area)

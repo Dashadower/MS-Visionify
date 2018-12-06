@@ -4,14 +4,13 @@ import screen_processor as sp
 import terrain_analyzer as ta
 import queue
 class MacroController:
-    def __init__(self):
+    def __init__(self, keymap=km.DEFAULT_KEY_MAP):
         self.screen_capturer = sp.MapleScreenCapturer()
         self.screen_processor = sp.StaticImageProcessor(self.screen_capturer)
         self.terrain_analyzer = ta.PathAnalyzer()
         self.keyhandler = km.KeyboardInputManager()
-        self.player_manager = pc.PlayerController(self.keyhandler, self.screen_processor)
+        self.player_manager = pc.PlayerController(self.keyhandler, self.screen_processor, keymap)
 
-        self.event_queue = queue.Queue()
 
     def loop(self):
         """
@@ -58,11 +57,15 @@ class MacroController:
 
         if not current_platform_hash:
             # Move to nearest platform and redo loop
-            pass
-            return 0
-        if not self.event_queue.empty():
-            # Move to designated goal
-            pass
+            return -1
+
+        else:
+            # Move to new platform
+            goal = self.terrain_analyzer.select_move(current_platform_hash)
+            if goal["method"] == "jumpr":
+                move_distance = goal["lower_bound"][0] - self.player_manager.x
+                if move_distance >= 20:
+
 
     def abort(self):
         pass

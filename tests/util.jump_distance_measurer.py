@@ -35,7 +35,7 @@ while True:
                 jmp_coords.append(playerpos)
                 min_y = min(min_y, playerpos[1])
             last_coords = playerpos
-    cv2.imshow("",imutils.resize(scrp.bgr_img, width=400))
+    cv2.imshow("",imutils.resize(scrp.bgr_img[area[1]:area[1]+area[3], area[0]:area[0]+area[2]], width=400))
     inp = cv2.waitKey(1)
     if inp == ord('q'):
         cv2.destroyAllWindows()

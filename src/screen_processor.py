@@ -64,8 +64,8 @@ class StaticImageProcessor:
         self.minimap_rect = None
         self.default_minimap_scan_area = [0, 40, 400, 300]
         # Minimap player marker original BGR: 68, 221, 255
-        self.lower_player_marker = np.array([67, 220, 254])  # B G R
-        self.upper_player_marker = np.array([69, 222, 255])
+        self.lower_player_marker = np.array([68, 221, 255])  # B G R
+        self.upper_player_marker = np.array([68, 221, 255])
         self.rune_marker = np.array([255, 102, 221]) # B G R
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
         self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
@@ -131,8 +131,10 @@ class StaticImageProcessor:
         :param rect: [x,y,w,h] bounding box of minimap in MapleStory screen. Call self.get_minimap_rect to obtain
         :return: x,y coordinate of player if found, else 0
         """
-        if not rect:
+        if not rect and not self.rect:
             rect = self.get_minimap_rect()
+        else:
+            rect = self.rect
         assert rect, "Invalid minimap coordinates"
         cropped = self.bgr_img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
         mask = cv2.inRange(cropped, self.lower_player_marker, self.upper_player_marker)
@@ -148,7 +150,6 @@ class StaticImageProcessor:
             avg_y = int(avg_y / totalpoints)
             avg_x = int(avg_x / totalpoints)
             return avg_x, avg_y
-
         return 0
 
     def find_other_player_marker(self, rect=None):

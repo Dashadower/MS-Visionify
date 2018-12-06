@@ -1,4 +1,5 @@
-from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT, DIK_1
+from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT
+from keystate_manager import DEFAULT_KEY_MAP
 import time, math
 # simple jump vertical distance: about 6 pixels
 
@@ -6,7 +7,7 @@ class PlayerController:
     """
     This class keeps track of character location and manages advanced movement and attacks.
     """
-    def __init__(self, key_mgr, screen_handler):
+    def __init__(self, key_mgr, screen_handler, keymap=DEFAULT_KEY_MAP):
         """
         Class Variables:
         self.x: Known player minimap x coord. Needs to be updated manually
@@ -22,6 +23,8 @@ class PlayerController:
         self.x = None
         self.y = None
 
+        self.keymap = keymap
+        self.jump_key = self.keymap["jump"]
         self.key_mgr = key_mgr
         self.screen_processor = screen_handler
         self.goal_x = None
@@ -36,6 +39,10 @@ class PlayerController:
 
         self.horizontal_jump_distance = 10
         self.horizontal_jump_height = 9
+
+        self.x_movement_enforce_rate = 15  # refer to optimized_horizontal_move
+
+        self.moonlight_slash_x_range = 30  # exceed: moonlight slash's estimalte x hitbox range in minimap coords.
 
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
         """Quadratic jump curve simulation
@@ -98,62 +105,46 @@ class PlayerController:
             print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
             self.horizontal_move_goal(minimum_jmp_x)
 
-
-    def precise_horizontal_move_goal(self, goal_x, blocking=False):
-        if goal_x - self.x > 0:
-            # need to go right:
-            mode = "r"
-        else:
-            # need to go left:
-            mode = "l"
-        finemode = False
-        if mode == "r":
-            if self.x >= goal_x - self.finemode_limit:
-                finemode = True
-        elif mode == "l":
-            if self.x <= goal_x + self.finemode_limit:
-                finemode = True
-        if not finemode:
-            if mode == "r":
-                # need to go right:
+    def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
+        """
+        Move from self.x to goal_x in as little time as possible. Uses multiple movement solutions for efficient paths. Blocking call
+        :param goal_x: x coordinate to move to. This function only takes into account x coordinate movements.
+        :param ledge: If true, goal_x is an end of a platform, and additional movement solutions can be used. If not, precise movement is required.
+        :param enforce_time: If true, the function will stop moving after a time threshold is met and still haven't
+        met the goal. Default threshold is 15 minimap pixels per second.
+        :return: None
+        """
+        loc_delta = self.x - goal_x
+        abs_loc_delta = abs(loc_delta)
+        start_time = time.time()
+        if loc_delta < 0:
+            # we need to move right
+            time_limit = math.ceil(loc_delta/self.x_movement_enforce_rate)
+            if abs_loc_delta <= 10:
+                # Just walk if distance is less than 10
                 self.key_mgr._direct_press(DIK_RIGHT)
-            elif mode == "l":
-                # need to go left:
-                self.key_mgr._direct_press(DIK_LEFT)
-        while True:
-            self.image_handler.update_image()
-            self.x = self.image_handler.find_player_minimap_marker(self.image_handler.minimap_rect)
-            if not self.x:
-                continue
-            if self.x:
-                self.x = self.x[0]
-            if finemode:
-                if mode == "r":
-                    self.key_mgr._direct_press(DIK_RIGHT)
-                    time.sleep(0.03)
-                    self.key_mgr._direct_release(DIK_RIGHT)
-                elif mode == "l":
-                    self.key_mgr._direct_press(DIK_LEFT)
-                    time.sleep(0.03)
-                    self.key_mgr._direct_release(DIK_LEFT)
-                time.sleep(0.05)
-            if mode == "r":
-                if self.x >= goal_x-self.finemode_limit:
-                    finemode = True
-                if self.x >= goal_x-self.horizontal_goal_offset:
-                    break
-            elif mode == "l":
-                if self.x <= goal_x+self.finemode_limit:
-                    finemode = True
-                if self.x <= goal_x+self.horizontal_goal_offset:
-                    break
-            if goal_x - self.x > 0:
-                # need to go right:
-                mode = "r"
+
+                # Below: use a loop to continously press right until goal is reached or time is up
+                while True:
+                    if time.time()-start_time > time_limit:
+                        break
+                    player_pos = self.screen_processor.find_player_minimap_marker()
+                    # Problem with synchonizing player_pos with self.x and self.y. Needs to get resolved.
+                    # Current solution: Just call self.update() (not good for redundancy)
+                    if player_pos[0] >= goal_x:
+                        # Reached or exceeded destination x coordinates
+                        break
+
+                self.key_mgr._direct_release(DIK_RIGHT)
+
             else:
-                # need to go left:
-                mode = "l"
-        self.key_mgr.reset()
+                # Distance is quite big, so we glide
+                pass
+
+
+        elif loc_delta > 0:
+            # we are moving to the left
+            pass
 
     def horizontal_move_goal(self, goal_x):
         """
