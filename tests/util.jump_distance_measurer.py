@@ -8,6 +8,7 @@ screencap = MapleScreenCapturer()
 scrp = StaticImageProcessor(screencap)
 scrp.update_image()
 area = scrp.get_minimap_rect()
+print(area)
 os.chdir("../src")
 
 
@@ -33,7 +34,7 @@ while True:
                 jmp_coords.append(playerpos)
                 min_y = min(min_y, playerpos[1])
             last_coords = playerpos
-    cv2.imshow("",imutils.resize(scrp.bgr_img[area[1]:area[1]+area[3], area[0]:area[0]+area[2]], width=400))
+    cv2.imshow("a to record",imutils.resize(scrp.bgr_img[area[1]:area[1]+area[3], area[0]:area[0]+area[2]], width=400))
     inp = cv2.waitKey(1)
     if inp == ord('q'):
         cv2.destroyAllWindows()
@@ -65,14 +66,17 @@ while True:
 
 
 
-"""start_x = 91
+start_x = 91
 start_y = 34
 end_x = 101
-jmp_coords = [(91, 34), (92, 33), (93, 29), (95, 27), (97, 27), (98, 29), (100, 32), (101, 34)]
-x_val = [x[0] for x in jmp_coords]
-y_val = [y[1] for y in jmp_coords]
-x = np.linspace(start_x, end_x, 500)
-y = (0.53*(x-((start_x+end_x)/2)))**2 + start_y - 7.3
+_jmp_coords = []
+for obj in jmp_coords:
+    _jmp_coords.append((obj[0], -obj[1]))
+x_val = [x[0] for x in _jmp_coords]
+y_val = [y[1] for y in _jmp_coords]
+#x = np.linspace(start_x, end_x, 500)
+#y = (0.53*(x-((start_x+end_x)/2)))**2 + start_y - 7.3
 plt.scatter(x_val, y_val)
-plt.plot(x, y)
-plt.show()"""
+plt.gca().set_aspect('equal', adjustable='box')
+#plt.plot(x, y)
+plt.show()

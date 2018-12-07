@@ -62,7 +62,7 @@ class StaticImageProcessor:
         self.processed_img = None
         self.minimap_area = 0
         self.minimap_rect = None
-        self.default_minimap_scan_area = [0, 40, 400, 300]
+        self.default_minimap_scan_area = [0, 40, 400, 300]  # x, y, x2, y2
         # Minimap player marker original BGR: 68, 221, 255
         self.lower_player_marker = np.array([68, 221, 255])  # B G R
         self.upper_player_marker = np.array([68, 221, 255])
@@ -102,7 +102,7 @@ class StaticImageProcessor:
 
         if contours:
             biggest_contour = max(contours, key = cv2.contourArea)
-            if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= 30000:
+            if cv2.contourArea(biggest_contour) >= 1500 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= 35000:
                 minimap_coords = cv2.boundingRect(biggest_contour)
                 if minimap_coords[0] > 0 and minimap_coords[1] > 0 and minimap_coords[2] > 0 and minimap_coords[2] > 0:
                     contour_area = cv2.contourArea(biggest_contour)

@@ -65,6 +65,8 @@ class PathAnalyzer:
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
         self.dbljump_half_height = 20  # absolute jump height of a half jump. Used for generating navigation map
 
+        self.directional_drop_limit = 6  # maximum x distance between platforms to just drop from the side
+
     def save(self, filename="mapdata.platform", minimap_roi = None):
         """Save platforms, oneway_platforms, ladders, minimap_roi to a file
         :param filename: path to save file
@@ -221,50 +223,82 @@ class PathAnalyzer:
         x, y : coordinate area where the method can be used (x1<=coord_x<=x2, y1<=coord_y<=y2)
         method : movement method string
             drop : drop down directly
+            dropr : drop from right of ledge
+            dropl : drop from left of ledge
             jmpr : right jump
             jmpl : left jump
             dbljmp_max : double jump up fully
             dbljmp_half : double jump a bit less
+        Please refer to terrain_information.txt for more information.
         """
 
         return_map_dict = []
         platform = self.platforms[hash]
         platform.solutions = []
+        # Check if there are platforms which can be reached by dropping
+        """sorted_platforms = sorted([x.hash for x in self.platforms], key=lambda o: self.platforms[o].start_y, reverse=True)
+        platform_occupied_xbounds = []
+        for reference_platform in sorted_platforms:
+            ref_platform_obj = self.platforms[reference_platform]
+
+            if platform.start_y > ref_platform_obj.start_y:
+                if (platform.start_x < ref_platform_obj.end_x and platform.end_x > ref_platform_obj.start_x) or \
+                        (platform.start_x > ref_platform_obj.start_x and platform.start_x < ref_platform_obj.end_x):
+                    # platform overlaps
+                    overlap_start_x = max(platform.start_x, ref_platform_obj.start_x)
+                    overlap_end_x = min(platform.end_x, ref_platform_obj.end_x)"""
+
         for key, other_platform in self.platforms.items():
             if platform.hash != key:
+                solution = {}
                 # 1. Detect vertical overlaps
                 if platform.start_x < other_platform.end_x and platform.end_x > other_platform.start_x or \
                         platform.start_x > other_platform.start_x and platform.start_x < other_platform.end_x:
                     lower_bound_x = max(platform.start_x, other_platform.start_x)
                     upper_bound_x = min(platform.end_x, other_platform.end_x)
+
                     if platform.start_y < other_platform.end_y:
                         # Platform is higher than current_platform. Thus we can just drop
-                        solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"drop"}
-                        platform.solutions.append([solution, 0])
+                        solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y), "upper_bound": (upper_bound_x, platform.start_y), "method": "drop"}
+
                     else:
                         # We need to use double jump to get there, but first check if within jump height
                         if abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
                             solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"dbljmp_half"}
-                            platform.solutions.append([solution, 0])
+
                         elif abs(platform.start_y - other_platform.start_y) <= self.dbljump_max_height:
                             solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y),
                                         "upper_bound": (upper_bound_x, platform.start_y), "method": "dbljmp_max"}
-                            platform.solutions.append([solution, 0])
+
                 else:
                     # 2. No vertical overlaps. Calculate euclidean distance between each platform endpoints
                     front_point_distance = math.sqrt((platform.start_x-other_platform.end_x)**2 + (platform.start_y-other_platform.end_y)**2)
+
                     if front_point_distance <= self.jump_range:
                         # We can jump from the left end of the platform to goal
                         solution = {"hash":key, "lower_bound":(platform.start_x, platform.start_y), "upper_bound":(platform.start_x, platform.start_y), "method":"jmpl"}
-                        platform.solutions.append([solution, 0])
+
 
                     back_point_distance = math.sqrt((platform.end_x-other_platform.start_x)**2 + (platform.end_y-other_platform.start_y)**2)
+
                     if back_point_distance <= self.jump_range:
                         # We can jump fomr the right end of the platform to goal platform
                         solution = {"hash":key, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr"}
-                        platform.solutions.append([solution, 0])
 
+                    if other_platform.end_y - platform.start_y > 0 and\
+                            other_platform.start_x < platform.start_x - self.directional_drop_limit and\
+                            other_platform.end_x > platform.start_x - self.directional_drop_limit:
+                        # We can just drop from left ledge(start_x) to other_platform
+                        solution = {"hash": key, "lower_bound": (platform.start_x, platform.start_y), "upper_bound": (platform.start_x, platform.start_y), "method": "dropl"}
 
+                    elif other_platform.end_y - platform.start_y > 0 and\
+                            other_platform.end_x > platform.end_x + self.directional_drop_limit and\
+                            other_platform.start_x < platform.end_x + self.directional_drop_limit:
+
+                        solution = {"hash": key, "lower_bound": (platform.end_x, platform.end_y), "upper_bound": (platform.end_x, platform.end_y), "method": "dropr"}
+
+                if solution:
+                    platform.solutions.append([solution, 0])
 
     def reset(self):
         """

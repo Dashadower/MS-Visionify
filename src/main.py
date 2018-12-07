@@ -62,9 +62,14 @@ class MacroController:
         else:
             # Move to new platform
             goal = self.terrain_analyzer.select_move(current_platform_hash)
-            if goal["method"] == "jumpr":
-                move_distance = goal["lower_bound"][0] - self.player_manager.x
-                if move_distance >= 20:
+            goal_platform = self.terrain_analyzer.platforms[goal["hash"]]
+
+            # Note when calculating glide trajectory: before glide begins, parabolic jump shifts x coordinates by +- 3 pixels
+            if goal["method"] == "jmpl":
+                min_goal_x = goal_platform.end_x
+                slope = -0.2
+
+
 
 
     def abort(self):

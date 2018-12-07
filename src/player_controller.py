@@ -107,6 +107,20 @@ class PlayerController:
             print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
             self.horizontal_move_goal(minimum_jmp_x)
 
+    def linear_glide(self, x, jmp_x, jmp_y, jmp_height, slope):
+        """
+        Calculates glide y coordinate at x coordinate x with input constants
+        :param x: Desired X coordinate to get Y coordinates
+        :param jmp_x: Origin of glide X coordinates
+        :param jmp_y: Origin of glide Y coordinates
+        :param jmp_height: Standard single jump height
+        :param slope: Glide coefficient. Recommended: -0.2 for left, 0.2 for right
+        :return: Y coordinate
+        """
+        b = jmp_y - jmp_height - slope * jmp_x
+        y = slope * x + b
+        return y
+
     def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
         """
         Move from self.x to goal_x in as little time as possible. Uses multiple movement solutions for efficient paths. Blocking call

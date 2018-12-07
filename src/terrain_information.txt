@@ -1,0 +1,47 @@
+This file will attempt to explain how terrain_analyzer.PathAnalyzer.find_available_moves() works.
+It attempts to find methods to move from platform A to platform B.
+
+Some basic forms of movement methods:
+1. drop
+If platform A is located higher than platform B and have an overlapping portion on the x axis, it is possible to drop
+from A to B.
+
+-------------------   A
+
+
+        |-----------|---------    B
+
+2. jmpr, jmpl
+Simple. You can get to another platform by simply jumping from an end of platform to another platform
+Currently, it's a very hacky solution because it measures the euclidean distance between the ends of 2 platforms and
+if the distance is within a certain threshold, it's deemed jumpable
+     A
+------
+
+     B
+     -----
+Distance between point A and B is less than threshold? Jumpable
+
+3. dbljmp_max, dbljmp_half
+Pretty much the opposite of drop, if the departing platform is on top of another one, and y distance is within threshold
+the it can be reached. dbljmp_half is pretty much half the jump height of dbljmp_max
+
+Proposed Movement optimization techniques:
+1. Lookahead-Jumps
+ Suppose there are 3 platforms A, B, C in the respective form:
+
+ A---------+
+
+          B-----------+
+
+                     C-----------
+
+ If a path was planned A->B->C, normal jumpr would resort to jumping from the "+" at A, landing somewhere in the middle
+of B, move and Jump from "+" in B.
+ However, if we are at platform A, and we have information that the next destination from B is C, movement can be
+optimized, resulting in smoother and faster movement.
+ Since we do not have to be at the exact end of a platform to perform a downwards-right jump, we can resort to
+glide-jumping earlier and land near the middle of the platform, since glide jump can "glode" over some of its platform.
+ An attack command would be issued at the middle of each platform, which reduces the time needed to move to an optimal
+spot to attack, and can move to the next platform from the exact position where the attack was done.
+
