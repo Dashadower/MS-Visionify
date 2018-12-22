@@ -2,7 +2,7 @@
 import sys
 sys.path.append("../src")
 from screen_processor import MapleScreenCapturer
-import cv2, time, imutils, math
+import cv2, time, imutils, math, glob, random
 import numpy as np
 cap = MapleScreenCapturer()
 from win32gui import SetForegroundWindow
@@ -12,7 +12,7 @@ from win32gui import SetForegroundWindow
 x, y, w, h = 450, 180, 500, 130
 ds = None
 while True:
-    img = cap.capture(set_focus=False)
+    img = cap.capture(rect=[0,0,1600,900], set_focus=False)
     img_arr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     final_img = imutils.resize(img_arr, width = 200)
     cv2.imshow("s to save image", final_img)
@@ -32,7 +32,10 @@ while True:
         cv2.destroyAllWindows()
         break
     elif inp == ord("r"):
-        ds = cv2.imread("validation_rgb.png")
+        imgpath = "C:\\Users\\tttll\\PycharmProjects\\MacroSTory\\rune_trainer\\images\\screenshots\\finished\\*.png"
+        dt = random.choice(glob.glob(imgpath))
+
+        ds = cv2.imread(dt)
         print("read data")
 
 display = ds.copy()
@@ -50,12 +53,22 @@ if circles is not None:
     circles = np.round(circles[0, :]).astype("int")
     for (x, y, r) in circles:
         print(x, y, r)
+        cropped_color = display[max(0, int(y - 60 / 2)):int(y + 60 / 2), max(0, int(x - 60 / 2)):int(x + 60 / 2)]
         cropped = gray[max(0,int(y-60/2)):int(y+60/2), max(0,int(x-60/2)):int(x+60/2)]
-        cropped = cv2.Canny(cropped, threshold1=60, threshold2=180)
-        cropped_color = display[max(0,int(y-60/2)):int(y+60/2), max(0,int(x-60/2)):int(x+60/2)]
-        cv2.circle(gray, (x, y), r, (0, 255, 0), 2)
+        cropped = cv2.erode(cropped, (3,3))
+        cropped = cv2.dilate(cropped, (3,3))
+        cropped = cv2.Canny(cropped, threshold1=120, threshold2=190)
+        im2, contours, hierachy = cv2.findContours(cropped, cv2.RETR_TREE , cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(cropped_color,contours,-1,(167,143,255),1)
+        temp = np.zeros([60,60], np.uint8)
+        for y in range(0, 60):
+            for x in range(0, 60):
+                if (cropped_color[y,x].tolist() == [167,143,255]):
+                    temp[y,x] = 255
+
+        #cv2.circle(gray, (x, y), r, (0, 255, 0), 2)
         #cv2.circle(display, (x, y), r, (0, 255, 0), 2)
-        circle_roi.append([cropped, (x, y), cropped_color])
+        circle_roi.append([temp, (x, y), cropped_color])
 
 cv2.imshow("", display)
 cv2.waitKey(0)
@@ -65,38 +78,43 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 circle_roi = sorted(circle_roi, key=lambda x: x[1][0])
 
+circle_radius = 18
+
+def distance(x1, y1, x2, y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+
+quadrants = [0,0,0,0]
 for circ in circle_roi:
-    circ_img = circ[0]
-    _, contours, _ = cv2.findContours(circ_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    """for cnt in contours:
-        approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
-        if len(approx) >= 20:
-            cv2.drawContours(circ[2],[cnt], -1,(0,255,0), 1)"""
+    circ_black = circ[0]
+    circ_rgb = circ[2]
+    center = circ[1]
 
+    w = circ_black.shape[1]
+    h = circ_black.shape[0]
 
-    lines = cv2.HoughLinesP(circ[0],1,np.pi/180, 10,minLineLength=5)
-    line_data = []
-    for line in lines:
-        x1, y1, x2, y2 = line[0].tolist()
-        if x2 == x1 or y2 == y1:
-            slope = 0
-        else:
-            slope = (y2-y1)/(x2-x1)
-        line_data.append([x1,y1,x2,y2, slope])
-        #cv2.line(circ[2], (x1, y1), (x2, y2), (0, 255, 0), 1)
+    for y in range(0,h):
+        for x in range(0,w):
+            if distance(30,30, x, y) <= circle_radius:
+                if circ_black[y,x] == 255:
+                    fixed_x = x - 30
+                    fixed_y = y - 30
 
-    for line in line_data:
-        for other_line in line_data:
-            dist = []
+                    if fixed_y > 0:
+                        if fixed_x > 0:
+                            quadrants[0] += 1
+                        elif fixed_x < 0:
+                            quadrants[1] += 1
+                    elif fixed_y < 0:
+                        if fixed_x > 0:
+                            quadrants[3] += 1
+                        elif fixed_x < 0:
+                            quadrants[2] += 1
 
-            processed_slope = line[4] * other_line[4]
-            if processed_slope <= 0:
-                copied = circ[2].copy()
-                cv2.line(copied, (line[0], line[1]),(line[2], line[3]), (0, 255, 0), 1)
-                cv2.line(copied, (other_line[0], other_line[1]), (other_line[2], other_line[3]), (255, 0, 0), 1)
-                #cv2.imshow(str(processed_slope), imutils.resize(copied, width=400))
-                #cv2.waitKey(0)
-                #cv2.destroyAllWindows()
-    cv2.imshow("contours", imutils.resize(circ[2], width=400))
-    cv2.imshow("canny",imutils.resize(circ[0], width=400))
-    cv2.waitKey(0)
+    print("top vs bottom", quadrants[0]+quadrants[1], quadrants[2]+quadrants[3])
+    print("left vs right", quadrants[1]+quadrants[2], quadrants[0]+quadrants[3])
+    cv2.circle(circ_rgb, (30, 30), circle_radius, (0, 255, 0), 2)
+    cv2.imshow("", imutils.resize(circ_rgb, width=400))
+    cv2.imshow("b",imutils.resize(circ_black, width=400))
+    cv2.waitKeyEx(0)
+
