@@ -15,12 +15,16 @@ while True:
     if not area == 0:
 
         playerpos = scrp.find_player_minimap_marker(area)
+
         if playerpos != 0:
             pathextractor.input(playerpos[0], playerpos[1])
 
-        print(pathextractor.platforms.items())
-        cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
+        print(pathextractor.platforms)
+        #print(pathextractor.current_platform_coords)
 
+        cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
+        if playerpos != 0:
+            cv2.circle(cropped_img, playerpos, 3, (0, 0, 255), -1)
         if pathextractor.platforms:
             for key, platform in pathextractor.platforms.items():
                 cv2.line(cropped_img,(platform.start_x, platform.start_y), (platform.end_x, platform.end_y),(0,255,0), 2)

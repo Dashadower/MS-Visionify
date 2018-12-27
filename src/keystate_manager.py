@@ -157,7 +157,8 @@ DEFAULT_KEY_MAP = {
     "moonlight_slash": dic.DIK_A,
     "thousand_sword": dic.DIK_F,
     "release_overload": dic.DIK_Q,
-    "demon_strike": dic.DIK_1
+    "demon_strike": dic.DIK_1,
+    "shield_chase": dic.DIK_S
 }
 
 class AdvancedThreadedKeyboardHandler(KeyboardInputManager):
