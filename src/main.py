@@ -140,6 +140,8 @@ class MacroController:
         elif movement_type == "dbljmp_half":
             self.player_manager.dbljump_half()
 
+        time.sleep(1)
+
         # Finished
         return 0
 
