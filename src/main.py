@@ -33,6 +33,10 @@ class MacroController:
     def loop(self):
         """
         Main event loop for Macro
+        Important note: Since this function uses PathAnalyzer's pathing algorithm, when this function moves to a new
+        platform, it will invoke PathAnalyzer.move_platform. HOWEVER, in an attempt to make the system error-proof,
+        platform movement and solution flagging is done on the loop call succeeding the loop call where the actual
+        move ment is made. self.goal_platform is used for such purpose.
         :return: loop exit code
         """
         # Check if MapleStory window is alive
@@ -103,29 +107,11 @@ class MacroController:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
             if self.player_manager.x < next_platform_solution["lower_bound"][0]:
                 # We are left of solution bounds.
-                while True:
-                    # Continously move moonlight_slash range while we are not surpassing the boundary, and use moonlight slash
-                    if self.player_manager.x + self.player_manager.moonlight_slash_x_range < next_platform_solution["upper_bound"][0]:
-                        self.player_manager.optimized_horizontal_move(self.player_manager.x + self.player_manager.moonlight_slash_x_range)
-                    else:
-                        break
-
-                    self.player_manager.update()
-                    self.player_manager.moonlight_slash()
-                    time.sleep(1)
+                self.player_manager.moonlight_slash_sweep_move()
 
             else:
                 # We are right of solution bounds
-                while True:
-                    # Again, continously move moonlight slash range while withon bounds.
-                    if self.player_manager.x - self.player_manager.moonlight_slash_x_range > next_platform_solution["lower_bound"][0]:
-                        self.player_manager.optimized_horizontal_move(self.player_manager.x - self.player_manager.moonlight_slash_x_range)
-                    else:
-                        break
-
-                    self.player_manager.update()
-                    self.player_manager.moonlight_slash()
-                    time.sleep(1)
+                self.player_manager.moonlight_slash_sweep_move()
 
         # All movement and attacks finished. Now perform movement
         movement_type = next_platform_solution["method"]

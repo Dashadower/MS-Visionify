@@ -15,7 +15,9 @@ SetForegroundWindow(hwnd)
 time.sleep(0.5)
 player_cntrlr.update()
 print(player_cntrlr.x, player_cntrlr.y)
-player_cntrlr.optimized_horizontal_move(player_cntrlr.x + 20)
-player_cntrlr.update()
+"""player_cntrlr.optimized_horizontal_move(player_cntrlr.x + 20)
+player_cn-rlr.update()
+print(player_cntrlr.x, player_cntrlr.y)"""
+player_cntrlr.moonlight_slash_sweep_move(player_cntrlr.x - 100)
 print(player_cntrlr.x, player_cntrlr.y)
 

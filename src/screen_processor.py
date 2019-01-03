@@ -1,4 +1,4 @@
-import cv2, imutils, win32gui, time
+import cv2, win32gui, time, math
 from PIL import ImageGrab
 import numpy as np
 
@@ -31,7 +31,7 @@ class MapleScreenCapturer:
         """Returns Maplestory window screenshot handle(not np.array!)
         :param set_focus : True if MapleStory window is to be focusesd before capture, False if not
         :param hwnd : Default: None Win32API screen handle to use. If None, sets and uses self.hwnd
-        :param hwnd : If defined, captures specificed ScreenRect area. Else, uses MS window rect.
+        :param hwnd : If defined, captures specificed ScreenRect area. Else, uses MS window ms_screen_rect.
         :return : returns Imagegrab of screen (PIL Image)"""
         if hwnd:
             self.hwnd = hwnd
@@ -55,6 +55,9 @@ class StaticImageProcessor:
 
         :param img_handle: handle to MapleScreenCapturer
         """
+        if not img_handle:
+            raise Exception("img_handle must reference an MapleScreenCapturer class!!")
+
         self.img_handle = img_handle
         self.bgr_img = None
         self.bin_img = None
@@ -62,13 +65,20 @@ class StaticImageProcessor:
         self.processed_img = None
         self.minimap_area = 0
         self.minimap_rect = None
+
+        self.maximum_minimap_area = 40000
+
         self.default_minimap_scan_area = [0, 40, 400, 300]
+
         # Minimap player marker original BGR: 68, 221, 255
         self.lower_player_marker = np.array([68, 221, 255])  # B G R
         self.upper_player_marker = np.array([68, 221, 255])
         self.rune_marker = np.array([255, 102, 221]) # B G R
+
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
-        self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+        self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+
+
 
     def update_image(self, src=None, set_focus=True, update_rect=False):
         """
@@ -79,14 +89,12 @@ class StaticImageProcessor:
             rgb_img = src
         else:
             if update_rect:
-                self.rect = self.img_handle.ms_get_screen_rect(self.hwnd)
-            rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.rect)
+                self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+            rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.ms_screen_rect)
             if not rgb_img:
                 assert self.bgr_img != 0, "self.img_handle did not return img"
         self.bgr_img = cv2.cvtColor(np.array(rgb_img), cv2.COLOR_RGB2BGR)
         self.gray_img = cv2.cvtColor(self.bgr_img, cv2.COLOR_BGR2GRAY)
-
-
 
     def get_minimap_rect(self):
         """
@@ -102,7 +110,7 @@ class StaticImageProcessor:
 
         if contours:
             biggest_contour = max(contours, key = cv2.contourArea)
-            if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= 30000:
+            if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= self.maximum_minimap_area:
                 minimap_coords = cv2.boundingRect(biggest_contour)
                 if minimap_coords[0] > 0 and minimap_coords[1] > 0 and minimap_coords[2] > 0 and minimap_coords[2] > 0:
                     contour_area = cv2.contourArea(biggest_contour)
@@ -114,7 +122,6 @@ class StaticImageProcessor:
                     return minimap_coords
                 else:
                     pass
-
 
         return 0
 
@@ -128,29 +135,51 @@ class StaticImageProcessor:
     def find_player_minimap_marker(self, rect=None):
         """
         Processes self.bgr_image to return player coordinate on minimap.
+        The player marker has exactly 12 pixels of the detection color to form a pixel circle(2,4,4,2 pixels). Therefore
+        before calculation the mean pixel value of the mask, we remove "false positives", which are not part of the
+        player color by finding pixels which do not have between 10 to 12 other pixels(including itself) of the same color in a
+        distance of 3.
         :param rect: [x,y,w,h] bounding box of minimap in MapleStory screen. Call self.get_minimap_rect to obtain
-        :return: x,y coordinate of player if found, else 0
+        :return: x,y coordinate of player relative to ms_screen_rect if found, else 0
         """
         if not rect and not self.minimap_rect:
             rect = self.get_minimap_rect()
         else:
             rect = self.minimap_rect
+
         assert rect, "Invalid minimap coordinates"
+
         cropped = self.bgr_img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
         mask = cv2.inRange(cropped, self.lower_player_marker, self.upper_player_marker)
         td = np.transpose(np.where(mask > 0)).tolist()
+
         if len(td) > 0:
             avg_x = 0
             avg_y = 0
             totalpoints = 0
             for coord in td:
-                avg_y += coord[0]
-                avg_x += coord[1]
-                totalpoints += 1
+
+                nearest_points = 0  # Points which are close to coord pixel
+                for ref_coord in td:
+                    # Calculate the range between every single pixel
+                    if math.sqrt(abs(ref_coord[0]-coord[0])**2 + abs(ref_coord[1]-coord[1])**2) <= 3:
+                        nearest_points += 1
+
+                if nearest_points >= 10 and nearest_points <= 12:
+                    avg_y += coord[0]
+                    avg_x += coord[1]
+                    totalpoints += 1
+
+            if totalpoints == 0:
+                return 0
+
             avg_y = int(avg_y / totalpoints)
             avg_x = int(avg_x / totalpoints)
             return avg_x, avg_y
+
         return 0
+
+
 
     def find_other_player_marker(self, rect=None):
         """

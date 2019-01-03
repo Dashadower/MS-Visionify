@@ -48,7 +48,7 @@ class PlayerController:
 
         self.x_movement_enforce_rate = 15  # refer to optimized_horizontal_move
 
-        self.moonlight_slash_x_range = 35  # exceed: moonlight slash's estimalte x hitbox range in minimap coords.
+        self.moonlight_slash_x_radius = 13  # exceed: moonlight slash's estimalte x hitbox RADIUS in minimap coords.
 
         self.last_shield_chase_time = 0
         self.shield_chase_cooldown = 6
@@ -65,7 +65,7 @@ class PlayerController:
         """
         if not player_coords_x:
             self.screen_processor.update_image()
-            player_coords_x, player_coords_y =  self.screen_processor.find_player_minimap_marker()
+            player_coords_x, player_coords_y = self.screen_processor.find_player_minimap_marker()
         self.x, self.y = player_coords_x, player_coords_y
 
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
@@ -129,6 +129,8 @@ class PlayerController:
             print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
             self.horizontal_move_goal(minimum_jmp_x)
 
+
+
     def linear_glide(self, x, jmp_x, jmp_y, jmp_height, slope):
         """
         Calculates glide y coordinate at x coordinate x with input constants
@@ -142,6 +144,73 @@ class PlayerController:
         b = jmp_y - jmp_height - slope * jmp_x
         y = slope * x + b
         return y
+
+    def moonlight_slash_sweep_move(self, goal_x):
+        """
+        This function will, while moving towards goal_x, constantly use exceed: moonlight slash and not overlapping
+        This function currently does not have an time enforce implementation, meaning it may fall into an infinite loop
+        if player coordinates are not read correctly.
+        :param goal_x:  minimap x goal coordinate.
+        :return: None
+        """
+        loc_delta = self.x - goal_x
+        abs_loc_delta = abs(loc_delta)
+        self.moonlight_slash()
+        time.sleep(0.5)
+        if loc_delta > 0:
+            # left movement
+            if abs_loc_delta < self.moonlight_slash_x_radius:
+                self.horizontal_move_goal(goal_x)
+
+            else:
+                while True:
+                    self.update()
+                    print(self.x, self.y)
+                    if self.x <= goal_x:
+                        break
+
+                    elif abs(self.x - goal_x) < self.moonlight_slash_x_radius * 2:
+                        self.optimized_horizontal_move(goal_x)
+                        time.sleep(0.1)
+                        self.moonlight_slash()
+
+                    else:
+                        print("moving to", self.x - self.moonlight_slash_x_radius * 2)
+                        self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
+                        time.sleep(0.1)
+                        print("attack")
+                        self.moonlight_slash()
+                        print("done")
+                        time.sleep(0.5)
+
+        elif loc_delta < 0:
+            # right movement
+            if abs_loc_delta < self.moonlight_slash_x_radius:
+                self.horizontal_move_goal(goal_x)
+
+            else:
+                while True:
+                    self.update()
+                    print(self.x, self.y)
+                    if self.x >= goal_x:
+                        break
+
+                    elif abs(goal_x - self.x) < self.moonlight_slash_x_radius * 2:
+                        self.optimized_horizontal_move(goal_x)
+                        time.sleep(0.1)
+                        self.moonlight_slash()
+
+                    else:
+                        print("moving to", self.x + self.moonlight_slash_x_radius * 2)
+                        self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
+                        time.sleep(0.1)
+                        print("attack")
+                        self.moonlight_slash()
+                        print("done")
+                        time.sleep(0.5)
+
+
+
 
     def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
         """
@@ -159,7 +228,7 @@ class PlayerController:
         if loc_delta < 0:
             # we need to move right
             time_limit = math.ceil(abs_loc_delta/self.x_movement_enforce_rate)
-            if abs_loc_delta <= 10:
+            if abs_loc_delta <= 5:
                 # Just walk if distance is less than 10
                 self.key_mgr._direct_press(DIK_RIGHT)
 
@@ -181,11 +250,11 @@ class PlayerController:
                 # Distance is quite big, so we glide
                 self.key_mgr._direct_press(DIK_RIGHT)
                 time.sleep(0.05)
-                self.key_mgr._direct_press(DIK_ALT)
+                self.key_mgr._direct_press(self.jump_key)
                 time.sleep(0.15)
-                self.key_mgr._direct_release(DIK_ALT)
+                self.key_mgr._direct_release(self.jump_key)
                 time.sleep(0.1)
-                self.key_mgr._direct_press(DIK_ALT)
+                self.key_mgr._direct_press(self.jump_key)
                 while True:
                     if time.time() - start_time > time_limit:
                         break
@@ -193,14 +262,14 @@ class PlayerController:
                     self.update()
                     if self.x >= goal_x - self.horizontal_goal_offset:
                         break
-                self.key_mgr._direct_release(DIK_ALT)
+                self.key_mgr._direct_release(self.jump_key)
                 self.key_mgr._direct_release(DIK_RIGHT)
 
 
         elif loc_delta > 0:
             # we are moving to the left
             time_limit = math.ceil(abs_loc_delta / self.x_movement_enforce_rate)
-            if abs_loc_delta <= 10:
+            if abs_loc_delta <= 5:
                 # Just walk if distance is less than 10
                 self.key_mgr._direct_press(DIK_LEFT)
 
@@ -222,11 +291,11 @@ class PlayerController:
                 # Distance is quite big, so we glide
                 self.key_mgr._direct_press(DIK_LEFT)
                 time.sleep(0.05)
-                self.key_mgr._direct_press(DIK_ALT)
+                self.key_mgr._direct_press(self.jump_key)
                 time.sleep(0.15)
-                self.key_mgr._direct_release(DIK_ALT)
+                self.key_mgr._direct_release(self.jump_key)
                 time.sleep(0.1)
-                self.key_mgr._direct_press(DIK_ALT)
+                self.key_mgr._direct_press(self.jump_key)
                 while True:
                     if time.time() - start_time > time_limit:
                         break
@@ -234,7 +303,7 @@ class PlayerController:
                     self.update()
                     if self.x <= goal_x + self.horizontal_goal_offset:
                         break
-                self.key_mgr._direct_release(DIK_ALT)
+                self.key_mgr._direct_release(self.jump_key)
                 self.key_mgr._direct_release(DIK_LEFT)
 
     def horizontal_move_goal(self, goal_x):
@@ -261,7 +330,7 @@ class PlayerController:
             # need to go left:
             self.key_mgr._direct_press(DIK_LEFT)
         while True:
-            self.update(self.screen_processor.find_player_minimap_marker())
+            self.update()
             if not self.x:
                 assert 1 == 0, "horizontal_move goal: failed to recognize coordinates"
 
@@ -277,9 +346,9 @@ class PlayerController:
 
     def dbljump_max(self):
         """Warining: is a blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_UP)
         time.sleep(0.01)
@@ -291,9 +360,9 @@ class PlayerController:
 
     def dbljump_half(self):
         """Warining: is a blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.1)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.23)
         self.key_mgr._direct_press(DIK_UP)
         time.sleep(0.01)
@@ -307,16 +376,16 @@ class PlayerController:
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_release(DIK_LEFT)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
 
     def jumpl_double(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_LEFT)
         time.sleep(0.05)
@@ -330,29 +399,29 @@ class PlayerController:
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.15)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.2)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         self.key_mgr._direct_release(DIK_LEFT)
 
     def jumpr(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_release(DIK_RIGHT)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
 
     def jumpr_double(self):
         """Blocking call"""
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.05)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_RIGHT)
         time.sleep(0.05)
@@ -366,23 +435,23 @@ class PlayerController:
         """Blocking call"""
         self.key_mgr._direct_press(DIK_RIGHT)
         time.sleep(0.05)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.15)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.2)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
         self.key_mgr._direct_release(DIK_RIGHT)
 
     def drop(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_DOWN)
         time.sleep(0.1)
-        self.key_mgr._direct_press(DIK_ALT)
+        self.key_mgr._direct_press(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_release(DIK_DOWN)
-        self.key_mgr._direct_release(DIK_ALT)
+        self.key_mgr._direct_release(self.jump_key)
 
     def moonlight_slash(self):
         self.key_mgr.single_press(self.keymap["moonlight_slash"])
