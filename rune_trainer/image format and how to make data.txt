@@ -1,5 +1,15 @@
 IMPORTANT: ALL IMAGE PROCESSING IS DONE AT RUNE_SCREEN_CAPTURE
 
+Info on scripts on this dir:
+convert_img2gray.py: Converts Images in given directory to grayscale using coversion method listed below
+count_images.py: returns a count of files in given directories
+keras_model_verifier.py: simple script to test trained model against running maplestory
+merge_images.py: when you have 2 directories containing a subdir of categories, merges images using labeldata.txt
+move_traindata2test.py: moves some images of each class folder to a different directory class folder
+rune_dataset_classifier: tool to classify directory of 60x60 images into classes.
+rune_screen_cacpture.py: tool to capture maplestory screen in rgb
+train_keras.py: CNN train script
+
 1. run rune_screen_capture. Will create cropped processed grayscale images of 4 rune markers saves to image/screenshots
 2. run rune_dataset_classifier Will crop images to 4 circles and move them accordingly to images/cropped
 3. run move_traindata2test will move some images in images/cropped/traindata to testdata
@@ -14,7 +24,6 @@ ds = cv2.cvtColor(ds, cv2.COLOR_BGR2HSV)
 # Maximize saturation
 ds[:, :, 1] = 255
 ds[:, :, 2] = 255
-
 
 finally convert to bgr and then gray
 

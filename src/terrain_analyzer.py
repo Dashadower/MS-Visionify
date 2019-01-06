@@ -118,7 +118,7 @@ class PathAnalyzer:
                     need_reset = False
 
         for key, platform in self.platforms.items():
-            if key != to_platform:
+            if key != to_platform and key != from_platform:
                 self.platforms[key].last_visit += 1
         if need_reset:
             for method in self.platforms[from_platform].solutions:

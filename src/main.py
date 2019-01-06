@@ -13,9 +13,9 @@ class MacroController:
         self.keyhandler = km.KeyboardInputManager()
         self.player_manager = pc.PlayerController(self.keyhandler, self.screen_processor, keymap)
 
-        self.last_platform = None
-        self.current_platform = None
-        self.goal_platform = None
+        self.last_platform_hash = None
+        self.current_platform_hash = None
+        self.goal_platform_hash = None
 
         # Initialization code for self.randomize_skill
         self.thousand_sword_percent = 30
@@ -50,7 +50,7 @@ class MacroController:
         # Update Constants
         player_minimap_pos = self.screen_processor.find_player_minimap_marker()
         if not player_minimap_pos:
-            return -1
+            return -2
         self.player_manager.update(player_minimap_pos[0], player_minimap_pos[1])
 
         # Placeholder for Lie Dectector Detector (sounds weird)
@@ -62,38 +62,50 @@ class MacroController:
         # End Placeholder
 
         # Check if player is on platform
-        self.current_platform = None
+        self.current_platform_hash = None
 
         for key, platform in self.terrain_analyzer.oneway_platforms.items():
             if self.player_manager.y == platform.start_y and \
                 self.player_manager.x >= platform.start_x and \
                 self.player_manager.x <= platform.end_x:
-                self.current_platform = platform
+                self.current_platform_hash = platform.hash
                 break
 
         for key, platform in self.terrain_analyzer.platforms.items():
             if self.player_manager.y == platform.start_y and \
                 self.player_manager.x >= platform.start_x and \
                 self.player_manager.x <= platform.end_x:
-                self.current_platform = platform
+                self.current_platform_hash = platform.hash
                 break
 
-        if not self.current_platform:
+        if not self.current_platform_hash:
             # Move to nearest platform and redo loop
+            # Failed to find platform.
             return -1
 
         # Update navigation dictionary with last_platform and current_platform
-        if self.goal_platform and self.current_platform == self.goal_platform:
-            self.terrain_analyzer.move_platform(self.last_platform, self.current_platform)
+        if self.goal_platform_hash and self.current_platform_hash == self.goal_platform_hash:
+            print("moved", self.last_platform_hash, self.current_platform_hash)
+            self.terrain_analyzer.move_platform(self.last_platform_hash, self.current_platform_hash)
 
         # Reinitialize last_platform to current_platform
-        self.last_platform = self.current_platform
+        self.last_platform_hash = self.current_platform_hash
 
         # We are on a platform. find an optimal way to clear platform.
         # If we know our next platform destination, we can make our path even more efficient
-        next_platform_solution = self.terrain_analyzer.select_move(self.current_platform.hash)
+        next_platform_solution = self.terrain_analyzer.select_move(self.current_platform_hash)
         print("next platform solution:", next_platform_solution)
-        self.goal_platform = next_platform_solution["hash"]
+        print("all avilable solutions:")
+        for key, val in self.terrain_analyzer.platforms.items():
+            print(key)
+            for obj in val.solutions:
+                print(obj)
+            print("last visit:",
+                  val.last_visit if val.last_visit <= len(self.terrain_analyzer.platforms) * 2 - 1 else "@@@@@@" + str(
+                      val.last_visit))
+            print("-------------------")
+        print("\n\n\n\n")
+        self.goal_platform_hash = next_platform_solution["hash"]
         self.randomize_skill()
         time.sleep(1)
 
@@ -107,11 +119,13 @@ class MacroController:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
             if self.player_manager.x < next_platform_solution["lower_bound"][0]:
                 # We are left of solution bounds.
-                self.player_manager.moonlight_slash_sweep_move()
+                #print("run sweep move")
+                self.player_manager.moonlight_slash_sweep_move(next_platform_solution["lower_bound"][0])
 
             else:
                 # We are right of solution bounds
-                self.player_manager.moonlight_slash_sweep_move()
+                #print("run sweep move")
+                self.player_manager.moonlight_slash_sweep_move(next_platform_solution["upper_bound"][0])
 
         # All movement and attacks finished. Now perform movement
         movement_type = next_platform_solution["method"]

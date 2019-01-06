@@ -15,7 +15,7 @@ while True:
     #canny = imutils.resize(dilated, width = 500)
     final_img = img_arr
 
-    cv2.imshow("", final_img)
+    cv2.imshow("", imutils.resize(final_img, width=400))
 
     inp = cv2.waitKey(1)
     if inp == ord("q"):

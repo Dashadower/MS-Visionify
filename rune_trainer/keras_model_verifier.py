@@ -8,7 +8,7 @@ import cv2, time, imutils, os, glob, random
 import numpy as np
 from win32gui import SetForegroundWindow
 from keras.models import load_model
-
+from tensorflow import device
 cap = MapleScreenCapturer()
 
 from keras import backend as K
@@ -20,6 +20,7 @@ K.set_session(session)
 # End Use GPU Mode TF
 """
 model_name = "arrow_classifier_keras_gray.h5"
+#with device("/cpu:0"):
 model = load_model(model_name)
 model.compile(optimizer = "adam", loss = 'categorical_crossentropy', metrics = ['accuracy'])
 model.load_weights(model_name)
@@ -36,9 +37,10 @@ if mode == str(1):
     for x in range(4):
         images.append(cv2.imread(os.path.join(os.getcwd(), _images[x]), cv2.IMREAD_GRAYSCALE))
         print(os.path.join(os.getcwd(), _images[x]))
-    img2tensor = np.vstack([np.reshape(x, [1,60,60,1]) for x in images])
+    img2tensor = np.vstack([np.reshape(x, [1,60,60,1]).astype(np.float32) for x in images])
     res = model.predict(img2tensor, batch_size=4)
     index = 0
+    print(res)
     for result in res:
         final_class = np.argmax(result, axis=-1)
         for key, val in labels.items():
@@ -48,6 +50,7 @@ if mode == str(1):
         cv2.imshow(str(result), images[index])
         cv2.waitKeyEx(0)
         cv2.destroyAllWindows()
+        index += 1
 
 elif mode == str(2):
     x, y, w, h = 450, 180, 500, 130
@@ -89,7 +92,7 @@ elif mode == str(2):
             print(x, y, r)
             cropped = gray[max(0,int(y-60/2)):int(y+60/2), max(0,int(x-60/2)):int(x+60/2)]
             cv2.imwrite("%d%d%d.png" % (x, y, r), cropped)
-            circle_roi.append([np.reshape(cropped, [1,60,60,1]), (x,y), cropped])
+            circle_roi.append([np.reshape(cropped, [1,60,60,1]).astype(np.float32), (x,y), cropped])
 
             cv2.circle(gray, (x, y), r, (0, 255, 0), 2)
             cv2.circle(display, (x, y), r, (0, 255, 0), 2)

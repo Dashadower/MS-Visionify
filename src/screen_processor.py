@@ -25,7 +25,7 @@ class MapleScreenCapturer:
             return window_hwnd
 
     def ms_get_screen_rect(self, hwnd):
-        return win32gui.GetWindowRect(hwnd)
+        return win32gui.GetWindowRect(hwnd)  # returns x1, y1, x2, y2
 
     def capture(self, set_focus=True, hwnd=None, rect=None):
         """Returns Maplestory window screenshot handle(not np.array!)
@@ -43,10 +43,8 @@ class MapleScreenCapturer:
             win32gui.SetForegroundWindow(self.hwnd)
             time.sleep(0.1)
         img = ImageGrab.grab(rect)
-        if img:
-            return img
-        else:
-            return 0
+
+        return img
 
 
 class StaticImageProcessor:

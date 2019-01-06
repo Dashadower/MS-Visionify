@@ -165,7 +165,7 @@ class PlayerController:
             else:
                 while True:
                     self.update()
-                    print(self.x, self.y)
+                    #print("ms cpos: ",self.x, self.y)
                     if self.x <= goal_x:
                         break
 
@@ -175,12 +175,12 @@ class PlayerController:
                         self.moonlight_slash()
 
                     else:
-                        print("moving to", self.x - self.moonlight_slash_x_radius * 2)
+                        #print("ms - moving to", self.x - self.moonlight_slash_x_radius * 2)
                         self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
-                        print("attack")
+                        #print("ms - attack")
                         self.moonlight_slash()
-                        print("done")
+                        #print("ms -done")
                         time.sleep(0.5)
 
         elif loc_delta < 0:
@@ -191,7 +191,7 @@ class PlayerController:
             else:
                 while True:
                     self.update()
-                    print(self.x, self.y)
+                    #print("ms cpos: ", self.x, self.y)
                     if self.x >= goal_x:
                         break
 
@@ -201,12 +201,12 @@ class PlayerController:
                         self.moonlight_slash()
 
                     else:
-                        print("moving to", self.x + self.moonlight_slash_x_radius * 2)
+                        #print("ms - moving to", self.x + self.moonlight_slash_x_radius * 2)
                         self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
-                        print("attack")
+                        #print("ms - attack")
                         self.moonlight_slash()
-                        print("done")
+                        #print("ms - done")
                         time.sleep(0.5)
 
 
@@ -260,7 +260,7 @@ class PlayerController:
                         break
 
                     self.update()
-                    if self.x >= goal_x - self.horizontal_goal_offset:
+                    if self.x >= goal_x - self.horizontal_goal_offset * 3:
                         break
                 self.key_mgr._direct_release(self.jump_key)
                 self.key_mgr._direct_release(DIK_RIGHT)
@@ -301,7 +301,7 @@ class PlayerController:
                         break
 
                     self.update()
-                    if self.x <= goal_x + self.horizontal_goal_offset:
+                    if self.x <= goal_x + self.horizontal_goal_offset * 3:
                         break
                 self.key_mgr._direct_release(self.jump_key)
                 self.key_mgr._direct_release(DIK_LEFT)

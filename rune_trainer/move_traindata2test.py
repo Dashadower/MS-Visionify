@@ -17,6 +17,6 @@ for cat in categories:
         os.rename(file, "testdata\\%s\\%s"%(cat, file.split("\\")[-1]))
         print(file, "->", "testdata/%s/%s"%(cat, file.split("\\")[-1]))
         opt = opt + 1
-        if opt >= ops:
+        if opt >= ops and ops != 0:
             break
             #pass

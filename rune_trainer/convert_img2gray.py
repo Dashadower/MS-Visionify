@@ -4,7 +4,8 @@ RGB to Grayscale batch converter.
 import os, cv2, glob
 
 categories = ["up", "down", "left", "right"]
-subdirs = ["testdata", "traindata"]
+subdirs = ["external_images"]
+
 os.chdir("images/cropped")
 
 for fdir in subdirs:

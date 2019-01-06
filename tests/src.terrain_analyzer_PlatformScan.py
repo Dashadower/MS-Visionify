@@ -32,4 +32,4 @@ while True:
         print("last visit:", val.last_visit if val.last_visit <= len(pathextractor.platforms) * 2 -1 else "@@@@@@" + str(val.last_visit))
         print("-------------------")
 
-    time.sleep(1)
+    time.sleep(5)
