@@ -26,7 +26,7 @@ class RuneDetector:
         self.model_path = model_path
         with device("/cpu:0"):  # Use cpu for evaluation
             model = load_model(self.model_path)
-            model.compile(optimizer="adam", loss='categorical_crossentropy', metrics=['accuracy'])
+            #model.compile(optimizer="adam", loss='categorical_crossentropy', metrics=['accuracy'])
             model.load_weights(self.model_path)
 
         self.model = model
@@ -121,6 +121,7 @@ class RuneDetector:
         result = self.classify(tensor)
         if GetKeyState(VK_NUMLOCK):
             self.key_mgr.single_press(DIK_NUMLOCK)
+            time.sleep(0.2)
         for inp in result:
             if inp == "up":
                 self.key_mgr.single_press(DIK_UP)
@@ -148,10 +149,11 @@ class RuneDetector:
         return result
 if __name__ == "__main__":
     label = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
-    solver = RuneDetector("C:/Users/tttll/PycharmProjects/MacroSTory/rune_trainer/arrow_classifier_keras_gray.h5", label)
+    solver = RuneDetector("arrow_classifier_keras_gray.h5", label)
     while True:
         img = solver.capture_roi()
-        cv2.imshow("", img)
+        cv2.imshow("Solver", img)
+
         return_val = solver.solve_auto()
         if return_val == -1:
             print("no rune detected")
@@ -159,6 +161,8 @@ if __name__ == "__main__":
             print("solved rune :)")
         k = cv2.waitKey(1)
         if k == ord("q"):
+            break
+        if cv2.getWindowProperty("Solver", 0) < 0:
             break
 
 
