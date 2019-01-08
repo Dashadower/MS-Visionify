@@ -1,4 +1,4 @@
-import cv2, win32gui, time, math
+import cv2, win32gui, time, math, win32ui, win32con
 from PIL import ImageGrab
 import numpy as np
 
@@ -45,6 +45,32 @@ class MapleScreenCapturer:
         img = ImageGrab.grab(rect)
 
         return img
+
+    def screen_capture(self,w, h, x=0, y=0, save=True, save_name=''):
+        # hwnd = win32gui.FindWindow(None, None)
+        hwnd = win32gui.GetDesktopWindow()
+        wDC = win32gui.GetWindowDC(hwnd)
+        dcObj = win32ui.CreateDCFromHandle(wDC)
+        cDC = dcObj.CreateCompatibleDC()
+        dataBitMap = win32ui.CreateBitmap()
+        dataBitMap.CreateCompatibleBitmap(dcObj, w, h)
+        cDC.SelectObject(dataBitMap)
+        cDC.BitBlt((0, 0), (w, h), dcObj, (x, y), win32con.SRCCOPY)
+
+        if save:
+            dataBitMap.SaveBitmapFile(cDC, save_name)
+        else:
+            b = dataBitMap.GetBitmapBits(True)
+            img = np.fromstring(b, np.uint8).reshape(h, w, 4)
+            cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        dcObj.DeleteDC()
+        cDC.DeleteDC()
+        win32gui.ReleaseDC(hwnd, wDC)
+        win32gui.DeleteObject(dataBitMap.GetHandle())
+
+        if not save:
+            return img
 
 
 class StaticImageProcessor:

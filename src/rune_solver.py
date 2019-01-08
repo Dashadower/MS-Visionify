@@ -1,11 +1,10 @@
 # -*- coding:utf-8 -*-
-
 """Classifier model verifier"""
 import sys
-sys.path.append("../src")
+
 
 from screen_processor import MapleScreenCapturer
-import cv2, time
+import cv2, time, logging, os
 import numpy as np
 from keras.models import load_model
 from tensorflow import device
@@ -15,7 +14,7 @@ from win32con import VK_NUMLOCK
 from win32api import GetKeyState
 
 class RuneDetector:
-    def __init__(self, model_path, labels):
+    def __init__(self, model_path, labels, logger=None):
         """
         Run just Once to initialize
         :param model_path: Path to trained keras model
@@ -30,7 +29,7 @@ class RuneDetector:
             model.load_weights(self.model_path)
 
         self.model = model
-
+        self.logger = logger
         self.rune_roi_1366 = [450, 180, 500, 130]  # x, y, w, h
         self.rune_roi_1024 = [295, 180, 500, 133]
         self.rune_roi_800 = [170,200, 440, 135]
@@ -68,13 +67,16 @@ class RuneDetector:
 
         circles = cv2.HoughCircles(gray_img, cv2.HOUGH_GRADIENT, 1, gray_img.shape[0] / 8, param1=100, param2=30, minRadius=18, maxRadius=30)
         temp_list = []
+        img_index = 1
         if circles is not None:
             circles = np.round(circles[0, :]).astype("int")
             for (x, y, r) in circles:
 
                 cropped = gray_img[max(0, int(y - 60 / 2)):int(y + 60 / 2), max(0, int(x - 60 / 2)):int(x + 60 / 2)].astype(np.float32)
-
+                self.logger.debug("Found circle within ROI shape:"+str(cropped.shape)+"coordinates"+str((x,y)))
+                cv2.imwrite("%d.png"%(img_index), cropped)
                 temp_list.append((cropped, (x, y)))
+                img_index += 1
 
         temp_list = sorted(temp_list, key= lambda x: x[1][0])
         return_list = []
@@ -117,6 +119,7 @@ class RuneDetector:
         processed_imgs = self.preprocess(img)
         if len(processed_imgs) != 4:
             return -1
+        cv2.imwrite("roi.png", img)
         tensor = self.images2tensor(processed_imgs)
         result = self.classify(tensor)
         if GetKeyState(VK_NUMLOCK):
@@ -147,22 +150,39 @@ class RuneDetector:
         result = self.classify(tensor)
 
         return result
+
 if __name__ == "__main__":
     label = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
-    solver = RuneDetector("arrow_classifier_keras_gray.h5", label)
-    while True:
-        img = solver.capture_roi()
-        cv2.imshow("Solver", img)
 
-        return_val = solver.solve_auto()
-        if return_val == -1:
-            print("no rune detected")
-        else:
-            print("solved rune :)")
-        k = cv2.waitKey(1)
-        if k == ord("q"):
-            break
-        if cv2.getWindowProperty("Solver", 0) < 0:
-            break
+    logger = logging.getLogger("log")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    fh = logging.FileHandler("logging.log", encoding="utf-8")
+    logger.addHandler(fh)
+    solver = RuneDetector("arrow_classifier_keras_gray.h5", label, logger=logger)
+    logger.debug("Log start")
+    logger.debug("screen handle: " + str(solver.scrp.ms_get_screen_hwnd()))
+    logger.debug("screen rect: " + str(solver.scrp.ms_get_screen_rect(solver.scrp.ms_get_screen_hwnd())))
+    #solver.scrp.screen_capture(800,600, save=True, save_name="dta.png")
+    try:
+        while True:
+            img = solver.capture_roi()
+            cv2.imshow("Solver", img)
+
+            return_val = solver.solve_auto()
+            if return_val == -1:
+                print("no rune detected")
+            else:
+                logger.debug("Finished solving runes.")
+            k = cv2.waitKey(1)
+            if k == ord("q"):
+                break
+            if cv2.getWindowProperty("Solver", 0) < 0:
+                logger.debug("Program Exit")
+                break
+    except:
+        logger.exception("EXCEPTION")
+        os.system("pause")
+
 
 
