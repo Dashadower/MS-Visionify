@@ -49,12 +49,19 @@ class PlayerController:
         self.x_movement_enforce_rate = 15  # refer to optimized_horizontal_move
 
         self.moonlight_slash_x_radius = 13  # exceed: moonlight slash's estimalte x hitbox RADIUS in minimap coords.
+        self.moonlight_slash_delay = 1.0  # delay after using MS where character is not movable
 
+        self.horizontal_movement_threshold = 15
         self.last_shield_chase_time = 0
         self.shield_chase_cooldown = 6
+        self.shield_chase_delay = 1.0  # delay after using SC where character is not movable
 
         self.last_thousand_sword_time = 0
         self.thousand_sword_cooldown = 8
+        self.thousand_sword_delay = 1.6  # delay after using thousand sword where character is not movable
+
+
+        self.overload_stack = 0
 
     def update(self, player_coords_x=None, player_coords_y=None):
         """
@@ -65,7 +72,11 @@ class PlayerController:
         """
         if not player_coords_x:
             self.screen_processor.update_image()
-            player_coords_x, player_coords_y = self.screen_processor.find_player_minimap_marker()
+            scrp_ret_val = self.screen_processor.find_player_minimap_marker()
+            if scrp_ret_val:
+                player_coords_x, player_coords_y = scrp_ret_val
+            else:
+                raise Exception("screen_processor did not return coordinates!!")
         self.x, self.y = player_coords_x, player_coords_y
 
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
@@ -156,7 +167,7 @@ class PlayerController:
         loc_delta = self.x - goal_x
         abs_loc_delta = abs(loc_delta)
         self.moonlight_slash()
-        time.sleep(0.5)
+        #time.sleep(0.5)
         if loc_delta > 0:
             # left movement
             if abs_loc_delta < self.moonlight_slash_x_radius:
@@ -181,7 +192,7 @@ class PlayerController:
                         #print("ms - attack")
                         self.moonlight_slash()
                         #print("ms -done")
-                        time.sleep(0.5)
+                        #time.sleep(0.5)
 
         elif loc_delta < 0:
             # right movement
@@ -207,7 +218,7 @@ class PlayerController:
                         #print("ms - attack")
                         self.moonlight_slash()
                         #print("ms - done")
-                        time.sleep(0.5)
+                        #time.sleep(0.5)
 
 
 
@@ -228,8 +239,8 @@ class PlayerController:
         if loc_delta < 0:
             # we need to move right
             time_limit = math.ceil(abs_loc_delta/self.x_movement_enforce_rate)
-            if abs_loc_delta <= 5:
-                # Just walk if distance is less than 10
+            if abs_loc_delta <= self.horizontal_movement_threshold:
+                # Just walk if distance is less than threshold
                 self.key_mgr._direct_press(DIK_RIGHT)
 
                 # Below: use a loop to continously press right until goal is reached or time is up
@@ -269,7 +280,7 @@ class PlayerController:
         elif loc_delta > 0:
             # we are moving to the left
             time_limit = math.ceil(abs_loc_delta / self.x_movement_enforce_rate)
-            if abs_loc_delta <= 5:
+            if abs_loc_delta <= self.horizontal_movement_threshold:
                 # Just walk if distance is less than 10
                 self.key_mgr._direct_press(DIK_LEFT)
 
@@ -455,13 +466,21 @@ class PlayerController:
 
     def moonlight_slash(self):
         self.key_mgr.single_press(self.keymap["moonlight_slash"])
+        self.overload_stack += 1
+        time.sleep(self.moonlight_slash_delay)
 
     def thousand_sword(self):
         if time.time() - self.last_thousand_sword_time > self.thousand_sword_cooldown:
             self.key_mgr.single_press(self.keymap["thousand_sword"])
             self.last_thousand_sword_time = time.time()
+            self.overload_stack += 5
 
     def shield_chase(self):
         if time.time() - self.last_shield_chase_time > self.shield_chase_cooldown:
-            self.key_mgr.single_press(self.key_mgr["shield_chase"])
+            self.key_mgr.single_press(self.keymap["shield_chase"])
             self.last_shield_chase_time = time.time()
+
+    def release_overload(self):
+        if self.overload_stack >= 18:
+            self.key_mgr.single_press(self.keymap["release_overload"])
+            self.overload_stack = 0

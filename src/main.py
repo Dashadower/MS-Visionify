@@ -30,6 +30,9 @@ class MacroController:
         for obj in range(100-len(self.choices)):
             self.choices.append(0)
 
+    def distance(self, x1, y1, x2, y2):
+        return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+
     def loop(self):
         """
         Main event loop for Macro
@@ -53,7 +56,7 @@ class MacroController:
             return -2
         self.player_manager.update(player_minimap_pos[0], player_minimap_pos[1])
 
-        # Placeholder for Lie Dectector Detector (sounds weird)
+        # Placeholder for Lie Detector Detector (sounds weird)
 
         # End Placeholder
 
@@ -105,30 +108,35 @@ class MacroController:
                       val.last_visit))
             print("-------------------")
         print("\n\n\n\n")
-        self.goal_platform_hash = next_platform_solution["hash"]
+        self.goal_platform_hash = next_platform_solution.to_hash
         self.randomize_skill()
         time.sleep(1)
 
+        # lookahead pathing
+        lookahead_platform_solution = self.terrain_analyzer.select_move(self.goal_platform_hash)
+        lookahead_lb = lookahead_platform_solution.lower_bound
+        lookahead_ub = lookahead_platform_solution.upper_bound
+
         # Find the closest location to next_platform_solution
-        if self.player_manager.x >= next_platform_solution["lower_bound"][0] and self.player_manager.x <= next_platform_solution["upper_bound"][0]:
+        if self.player_manager.x >= next_platform_solution.lower_bound[0] and self.player_manager.x <= next_platform_solution["upper_bound"][0]:
             # We are within the solution bounds. We can just attack once and perhaps move? Changes needed.
             self.player_manager.moonlight_slash()
             time.sleep(0.5)
 
         else:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
-            if self.player_manager.x < next_platform_solution["lower_bound"][0]:
+            if self.player_manager.x < next_platform_solution.lower_bound[0]:
                 # We are left of solution bounds.
                 #print("run sweep move")
-                self.player_manager.moonlight_slash_sweep_move(next_platform_solution["lower_bound"][0])
+                self.player_manager.moonlight_slash_sweep_move(next_platform_solution.lower_bound[0])
 
             else:
                 # We are right of solution bounds
                 #print("run sweep move")
-                self.player_manager.moonlight_slash_sweep_move(next_platform_solution["upper_bound"][0])
+                self.player_manager.moonlight_slash_sweep_move(next_platform_solution.lower_bound[0])
 
         # All movement and attacks finished. Now perform movement
-        movement_type = next_platform_solution["method"]
+        movement_type = next_platform_solution.method
         if movement_type == "drop":
             self.player_manager.drop()
         elif movement_type == "jmpl":

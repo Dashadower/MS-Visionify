@@ -1,17 +1,24 @@
 # -*- coding:utf-8 -*-
 """Classifier model verifier"""
-import sys
+import sys, logging
 
-
-from screen_processor import MapleScreenCapturer
-import cv2, time, logging, os
-import numpy as np
-from keras.models import load_model
-from tensorflow import device
-from keystate_manager import KeyboardInputManager
-from directinput_constants import DIK_UP, DIK_DOWN, DIK_LEFT, DIK_RIGHT, DIK_NUMLOCK
-from win32con import VK_NUMLOCK
-from win32api import GetKeyState
+logger = logging.getLogger("log")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+fh = logging.FileHandler("logging.log", encoding="utf-8")
+logger.addHandler(fh)
+try:
+    from screen_processor import MapleScreenCapturer
+    import cv2, time, os
+    import numpy as np
+    from keras.models import load_model
+    from tensorflow import device
+    from keystate_manager import KeyboardInputManager
+    from directinput_constants import DIK_UP, DIK_DOWN, DIK_LEFT, DIK_RIGHT, DIK_NUMLOCK
+    from win32con import VK_NUMLOCK
+    from win32api import GetKeyState
+except:
+    logger.exception("EXCEPTION FROM IMPORTS")
 
 class RuneDetector:
     def __init__(self, model_path, labels, logger=None):
@@ -152,19 +159,14 @@ class RuneDetector:
         return result
 
 if __name__ == "__main__":
-    label = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
-
-    logger = logging.getLogger("log")
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-    fh = logging.FileHandler("logging.log", encoding="utf-8")
-    logger.addHandler(fh)
-    solver = RuneDetector("arrow_classifier_keras_gray.h5", label, logger=logger)
-    logger.debug("Log start")
-    logger.debug("screen handle: " + str(solver.scrp.ms_get_screen_hwnd()))
-    logger.debug("screen rect: " + str(solver.scrp.ms_get_screen_rect(solver.scrp.ms_get_screen_hwnd())))
-    #solver.scrp.screen_capture(800,600, save=True, save_name="dta.png")
     try:
+        label = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
+
+        solver = RuneDetector("arrow_classifier_keras_gray.h5", label, logger=logger)
+        logger.debug("Log start")
+        logger.debug("screen handle: " + str(solver.scrp.ms_get_screen_hwnd()))
+        logger.debug("screen rect: " + str(solver.scrp.ms_get_screen_rect(solver.scrp.ms_get_screen_hwnd())))
+        # solver.scrp.screen_capture(800,600, save=True, save_name="dta.png")
         while True:
             img = solver.capture_roi()
             cv2.imshow("Solver", img)
@@ -182,7 +184,6 @@ if __name__ == "__main__":
                 break
     except:
         logger.exception("EXCEPTION")
-        os.system("pause")
 
 
 

@@ -45,3 +45,5 @@ glide-jumping earlier and land near the middle of the platform, since glide jump
  An attack command would be issued at the middle of each platform, which reduces the time needed to move to an optimal
 spot to attack, and can move to the next platform from the exact position where the attack was done.
 
+
+

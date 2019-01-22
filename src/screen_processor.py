@@ -95,8 +95,8 @@ class StaticImageProcessor:
         self.default_minimap_scan_area = [0, 40, 400, 300]
 
         # Minimap player marker original BGR: 68, 221, 255
-        self.lower_player_marker = np.array([68, 221, 255])  # B G R
-        self.upper_player_marker = np.array([68, 221, 255])
+        self.lower_player_marker = np.array([67, 220, 254])  # B G R
+        self.upper_player_marker = np.array([69, 222, 256])
         self.rune_marker = np.array([255, 102, 221]) # B G R
 
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
@@ -182,14 +182,13 @@ class StaticImageProcessor:
             avg_y = 0
             totalpoints = 0
             for coord in td:
-
                 nearest_points = 0  # Points which are close to coord pixel
                 for ref_coord in td:
                     # Calculate the range between every single pixel
                     if math.sqrt(abs(ref_coord[0]-coord[0])**2 + abs(ref_coord[1]-coord[1])**2) <= 3:
                         nearest_points += 1
 
-                if nearest_points >= 10 and nearest_points <= 12:
+                if nearest_points >= 10 and nearest_points <= 13:
                     avg_y += coord[0]
                     avg_x += coord[1]
                     totalpoints += 1

@@ -1,0 +1,36 @@
+Proposing a heuristical way to approximate the effectiveness of a given path
+
+One of the core features of the bot is deemed to be the ability to plan an efficient path given the start, end coordinates
+of each platform and its respective solutions(inter-platform movement methods).
+In order to select the most efficient path, a method for measuring the effectiveness of paths needs to be implemented.
+
+Here are some rules we assume to be true during evaluation
+
+1. A platform's number of mobs at any given time is proportional to its length.
+2. The cost of solutions, in biggest to least order is:
+    dbljmp_max > dbljmp_half > drop > jmpl = jmpr
+
+Platform efficiency is defined as length of platform multiplied by mob constant M
+
+We can now design a heuristical function where for a given solution which includes solutions S and platforms P, its efficiency
+can be defined the sum of solution cost subtracted from sum of Platform efficiency
+
+S(efficiency) = -Sigma(solution_cost) + Sigma(Platform_Efficiency)
+
+The cost coefficients for each solutions is as follows:
+
+dbljmp_max     5
+dbljmp_half    3
+drop           2
+jmpl,jmpr      1
+
+-------------------
+
+Practical calculation of efficiency with actual platforms
+
+Each platform, if longer than 5 pixels, is subdivided into subplatforms of length 5
+From start subplatform SPs in platform Ps, traverse through other connected subplatforms and solutions
+Keep track of number of subplatforms and solutions used during traversal
+If within current platform and next platform goal is decided, movement direction within the current platform cannot be changed
+Terminate when start platform is reached and calculate efficiency for each path found
+Select path with highest efficiency

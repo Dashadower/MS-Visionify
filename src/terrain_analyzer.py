@@ -24,6 +24,11 @@ function select(current_node):
             return vert
 """
 
+METHOD_DROP = "drop"
+METHOD_DBLJMP_MAX = "dbljmp_max"
+METHOD_DBLJMP_HALF = "dbljmp_half"
+METHOD_JUMPR = "jumpr"
+METHOD_JUMPL = "jumpl"
 
 class Platform:
     def __init__(self, start_x = None, start_y = None, end_x = None, end_y = None, last_visit = None, solutions = None, hash = None):
@@ -34,6 +39,15 @@ class Platform:
         self.last_visit = last_visit # list of a list: [solution, 0]
         self.solutions = solutions
         self.hash = hash
+
+class Solution:
+    def __init__(self, from_hash=None, to_hash=None, lower_bound=None, upper_bound=None, method=None, visited=False):
+        self.from_hash = from_hash
+        self.to_hash = to_hash
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.method = method
+        self.visited = visited
 
 class PathAnalyzer:
     """Converts minimap player coordinates to terrain information like ladders and platforms."""
@@ -109,12 +123,12 @@ class PathAnalyzer:
         need_reset = True
         for method in self.platforms[from_platform].solutions:
             solution = method
-            if solution["hash"] == to_platform:
-                self.platforms[solution["hash"]].last_visit = 0
-                method["visited"] = True
+            if solution.to_hash == to_platform:
+                self.platforms[solution.to_hash].last_visit = 0
+                method.visited = True
 
             else:
-                if not method["visited"]:
+                if not method.visited:
                     need_reset = False
 
         for key, platform in self.platforms.items():
@@ -122,7 +136,9 @@ class PathAnalyzer:
                 self.platforms[key].last_visit += 1
         if need_reset:
             for method in self.platforms[from_platform].solutions:
-                method["visited"] = False
+                method.visited = False
+
+
 
     def select_move(self, current_platform):
         """
@@ -130,8 +146,8 @@ class PathAnalyzer:
         :param current_platform: hash of departing platform
         :return: solution list in solution array of current_playform
         """
-        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x["hash"]].last_visit, reverse=True):
-            if not solution["visited"]:
+        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x.to_hash].last_visit, reverse=True):
+            if not solution.visited:
                 return solution
 
 
@@ -239,29 +255,34 @@ class PathAnalyzer:
                     upper_bound_x = min(platform.end_x, other_platform.end_x)
                     if platform.start_y < other_platform.end_y:
                         # Platform is higher than current_platform. Thus we can just drop
-                        solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"drop", "visited" : False}
+                        #solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"drop", "visited" : False}
+                        solution = Solution(platform.hash, key, (lower_bound_x, platform.start_y), (upper_bound_x, platform.start_y), METHOD_DROP, False)
+                        # Changed to using classes for readability
                         platform.solutions.append(solution)
                     else:
                         # We need to use double jump to get there, but first check if within jump height
                         if abs(platform.start_y - other_platform.start_y) <= self.dbljump_half_height:
-                            solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"dbljmp_half", "visited" : False}
+                            #solution = {"hash":key, "lower_bound":(lower_bound_x, platform.start_y), "upper_bound":(upper_bound_x, platform.start_y), "method":"dbljmp_half", "visited" : False}
+                            solution = Solution(platform.hash, key, (lower_bound_x, platform.start_y), (upper_bound_x, platform.start_y), METHOD_DBLJMP_HALF, False)
                             platform.solutions.append(solution)
                         elif abs(platform.start_y - other_platform.start_y) <= self.dbljump_max_height:
-                            solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y),
-                                        "upper_bound": (upper_bound_x, platform.start_y), "method": "dbljmp_max", "visited" : False}
+                            #solution = {"hash": key, "lower_bound": (lower_bound_x, platform.start_y),"upper_bound": (upper_bound_x, platform.start_y), "method": "dbljmp_max", "visited" : False}
+                            solution = Solution(platform.hash, key, (lower_bound_x, platform.start_y), (upper_bound_x, platform.start_y), METHOD_DBLJMP_MAX, False)
                             platform.solutions.append(solution)
                 else:
                     # 2. No vertical overlaps. Calculate euclidean distance between each platform endpoints
                     front_point_distance = math.sqrt((platform.start_x-other_platform.end_x)**2 + (platform.start_y-other_platform.end_y)**2)
                     if front_point_distance <= self.jump_range:
                         # We can jump from the left end of the platform to goal
-                        solution = {"hash":key, "lower_bound":(platform.start_x, platform.start_y), "upper_bound":(platform.start_x, platform.start_y), "method":"jmpl", "visited" : False}
+                        #solution = {"hash":key, "lower_bound":(platform.start_x, platform.start_y), "upper_bound":(platform.start_x, platform.start_y), "method":"jmpl", "visited" : False}
+                        solution = Solution(platform.hash, key, (platform.start_x, platform.start_y), (platform.start_x, platform.start_y), METHOD_JUMPL, False)
                         platform.solutions.append(solution)
 
                     back_point_distance = math.sqrt((platform.end_x-other_platform.start_x)**2 + (platform.end_y-other_platform.start_y)**2)
                     if back_point_distance <= self.jump_range:
                         # We can jump fomr the right end of the platform to goal platform
                         solution = {"hash":key, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr", "visited" : False}
+                        solution = Solution(platform.hash, key, (platform.end_x, platform.end_y), (platform.end_x, platform.end_y), METHOD_JUMPR, False)
                         platform.solutions.append(solution)
 
 
