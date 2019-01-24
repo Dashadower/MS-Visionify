@@ -118,7 +118,8 @@ class StaticImageProcessor:
         # Minimap player marker original BGR: 68, 221, 255
         self.lower_player_marker = np.array([67, 220, 254])  # B G R
         self.upper_player_marker = np.array([69, 222, 256])
-        self.rune_marker = np.array([255, 102, 221]) # B G R
+        self.lower_rune_marker = np.array([254, 101, 220]) # B G R
+        self.upper_rune_marker = np.array([255, 103, 222])
 
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
         self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
@@ -258,20 +259,33 @@ class StaticImageProcessor:
         :param rect: [x,y,w,h] bounding box of minimap. Call self.get_minimap_rect
         :return: x,y of rune minimap coordinates if found, else 0
         """
-        if not rect:
+        if not rect and not self.minimap_rect:
             rect = self.get_minimap_rect()
+        else:
+            rect = self.minimap_rect
         assert rect, "Invalid minimap coordinates"
         cropped = self.bgr_img[rect[1]:rect[1] + rect[3], rect[0]:rect[0] + rect[2]]
-        mask = cv2.inRange(cropped, self.rune_marker, self.rune_marker)
+        mask = cv2.inRange(cropped, self.lower_rune_marker, self.upper_rune_marker)
         td = np.transpose(np.where(mask > 0)).tolist()
         if len(td) > 0:
             avg_x = 0
             avg_y = 0
             totalpoints = 0
             for coord in td:
-                avg_y += coord[0]
-                avg_x += coord[1]
-                totalpoints += 1
+                nearest_points = 0  # Points which are close to coord pixel
+                for ref_coord in td:
+                    # Calculate the range between every single pixel
+                    if math.sqrt(abs(ref_coord[0] - coord[0]) ** 2 + abs(ref_coord[1] - coord[1]) ** 2) <= 6:
+                        nearest_points += 1
+
+                if nearest_points >= 20 and nearest_points <= 25:
+                    avg_y += coord[0]
+                    avg_x += coord[1]
+                    totalpoints += 1
+
+            if totalpoints == 0:
+                return 0
+
             avg_y = int(avg_y / totalpoints)
             avg_x = int(avg_x / totalpoints)
             return avg_x, avg_y

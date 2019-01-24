@@ -51,15 +51,17 @@ class PlayerController:
         self.moonlight_slash_x_radius = 13  # exceed: moonlight slash's estimalte x hitbox RADIUS in minimap coords.
         self.moonlight_slash_delay = 1.0 * 0.45  # delay after using MS where character is not movable
 
-        self.horizontal_movement_threshold = self.moonlight_slash_x_radius * 2.4 # Glide instead of walk if distance greater than threshold
+        self.horizontal_movement_threshold = 21 # Glide instead of walk if distance greater than threshold
         self.last_shield_chase_time = 0
         self.shield_chase_cooldown = 6
         self.shield_chase_delay = 1.0  # delay after using SC where character is not movable
 
         self.last_thousand_sword_time = 0
-        self.thousand_sword_cooldown = 8
+        self.thousand_sword_cooldown = 8 + 2
         self.thousand_sword_delay = 1.6  # delay after using thousand sword where character is not movable
 
+        self.rune_cooldown = 60 * 15  # 15 minutes for rune cooldown
+        self.last_rune_solve_time = 0
 
         self.overload_stack = 0
 

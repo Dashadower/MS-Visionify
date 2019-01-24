@@ -108,9 +108,45 @@ class PathAnalyzer:
         d_hash.update((str(data) + str(random.random())).encode())
         return str(d_hash.hexdigest())[:8]
 
+    def pathfind(self, start_hash, goal_hash):
+        """
+        Simple BFS algorithm to find a path from start platform to goal platform.
+        :param start_hash: hash of starting platform
+        :param goal_hash:  hash of goal platform
+        :return: list, in order of solutions to reach goal
+        """
+        try:
+            start_platform = self.platforms[start_hash]
+        except KeyError:
+            start_platform = self.oneway_platforms[start_hash]
+        max_steps = len(self.platforms) + len(self.oneway_platforms) + 2
+        calculated_paths = []
+        bfs_queue = []
+        visited_platform_hashes = []
+        for solution in start_platform.solutions:
+            if solution.to_hash not in visited_platform_hashes:
+                bfs_queue.append([solution, [solution]])
+
+        while bfs_queue:
+            current_solution, paths = bfs_queue.pop()
+            visited_platform_hashes.append(current_solution.from_hash)
+            if current_solution.to_hash == goal_hash:
+                return paths
+            try:
+                next_solution = self.platforms[current_solution.to_hash].solutions
+            except KeyError:
+                next_solution = self.oneway_platforms[current_solution.to_hash].solutions
+            for solution in next_solution:
+                if solution.to_hash not in visited_platform_hashes:
+                    cv = paths
+                    cv.append(solution)
+                    bfs_queue.append([solution, cv])
+
+
     def calculate_navigation_map(self):
         """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
         for key, platform in self.platforms.items():
+            platform.last_visit = 0
             self.calculate_interplatform_solutions(key)
         for key, platform in self.oneway_platforms.items():
             self.calculate_interplatform_solutions(key, oneway=True)
@@ -171,14 +207,14 @@ class PathAnalyzer:
             self.visited_coordinates.append(converted_tuple)
 
         # check if in continous platform
-        if inp_y >= self.last_y-4 and inp_y <= self.last_y+4 and self.last_x >= self.last_x - self.platform_variance and self.last_x <= self.last_x + self.platform_variance:
+        if inp_y >= self.last_y-2 and inp_y <= self.last_y+2 and self.last_x >= self.last_x - self.platform_variance and self.last_x <= self.last_x + self.platform_variance:
             # check if current coordinate is within platform being tracked
             if converted_tuple not in self.current_oneway_coords:
                 self.current_oneway_coords.append(converted_tuple)
         else:
             # current coordinates do not belong in any platforms
             # terminate pending platform, if exists and create new pending platform
-            if len(self.current_oneway_coords) >= self.minimum_platform_length:
+            if len(self.current_oneway_coords) >= self.minimum_platform_length-1:
                 platform_start = min(self.current_oneway_coords, key=lambda x: x[0])
                 platform_end = max(self.current_oneway_coords, key=lambda x: x[0])
                 d_hash = self.hash(str(platform_start))

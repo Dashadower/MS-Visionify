@@ -14,21 +14,21 @@ try:
     from keras.models import load_model
     from tensorflow import device
     from keystate_manager import KeyboardInputManager
-    from directinput_constants import DIK_UP, DIK_DOWN, DIK_LEFT, DIK_RIGHT, DIK_NUMLOCK
+    from directinput_constants import DIK_UP, DIK_DOWN, DIK_LEFT, DIK_RIGHT, DIK_NUMLOCK, DIK_SPACE
     from win32con import VK_NUMLOCK
     from win32api import GetKeyState
 except:
     logger.exception("EXCEPTION FROM IMPORTS")
 
 class RuneDetector:
-    def __init__(self, model_path, labels, logger=None):
+    def __init__(self, model_path, labels=None, screen_capturer=None, key_mgr=None):
         """
         Run just Once to initialize
         :param model_path: Path to trained keras model
         :param labels: dictionary with class names as keys, integer as values
         example: {'down': 0, 'left': 1, 'right': 2, 'up': 3}
         """
-        self.labels = labels
+        self.labels = labels if labels else {'down': 0, 'left': 1, 'right': 2, 'up': 3}
         self.model_path = model_path
         with device("/cpu:0"):  # Use cpu for evaluation
             model = load_model(self.model_path)
@@ -36,15 +36,15 @@ class RuneDetector:
             model.load_weights(self.model_path)
 
         self.model = model
-        self.logger = logger
+
         self.rune_roi_1366 = [450, 180, 500, 130]  # x, y, w, h
         self.rune_roi_1024 = [295, 180, 500, 133]
         self.rune_roi_800 = [170,200, 440, 135]
         self.rune_roi = None
-        self.scrp = MapleScreenCapturer()
-        self.key_mgr = KeyboardInputManager()
+        self.screen_processor = MapleScreenCapturer() if not screen_capturer else screen_capturer
+        self.key_mgr = KeyboardInputManager() if not key_mgr else key_mgr
     def capture_roi(self):
-        screen_rect = self.scrp.ms_get_screen_rect(self.scrp.ms_get_screen_hwnd())
+        screen_rect = self.screen_processor.ms_get_screen_rect(self.screen_processor.ms_get_screen_hwnd())
         screen_width = screen_rect[2]-screen_rect[0]
         if screen_width > 1300:
             self.rune_roi = self.rune_roi_1366
@@ -52,7 +52,7 @@ class RuneDetector:
             self.rune_roi = self.rune_roi_1024
         elif screen_width > 800:
             self.rune_roi = self.rune_roi_800
-        captured_image = self.scrp.capture(set_focus=False, rect=screen_rect)
+        captured_image = self.screen_processor.capture(set_focus=False, rect=screen_rect)
 
         captured_roi = cv2.cvtColor(np.array(captured_image), cv2.COLOR_RGB2BGR)
 
@@ -80,7 +80,7 @@ class RuneDetector:
             for (x, y, r) in circles:
 
                 cropped = gray_img[max(0, int(y - 60 / 2)):int(y + 60 / 2), max(0, int(x - 60 / 2)):int(x + 60 / 2)].astype(np.float32)
-                self.logger.debug("Found circle within ROI shape:"+str(cropped.shape)+"coordinates"+str((x,y)))
+
                 cv2.imwrite("%d.png"%(img_index), cropped)
                 temp_list.append((cropped, (x, y)))
                 img_index += 1
@@ -126,7 +126,7 @@ class RuneDetector:
         processed_imgs = self.preprocess(img)
         if len(processed_imgs) != 4:
             return -1
-        cv2.imwrite("roi.png", img)
+        #cv2.imwrite("roi.png", img)
         tensor = self.images2tensor(processed_imgs)
         result = self.classify(tensor)
         if GetKeyState(VK_NUMLOCK):
@@ -143,6 +143,9 @@ class RuneDetector:
                 self.key_mgr.single_press(DIK_RIGHT)
             time.sleep(0.1)
         return result
+
+    def press_space(self):
+        self.key_mgr.single_press(DIK_SPACE)
 
     def solve(self):
         """
@@ -164,8 +167,8 @@ if __name__ == "__main__":
 
         solver = RuneDetector("arrow_classifier_keras_gray.h5", label, logger=logger)
         logger.debug("Log start")
-        logger.debug("screen handle: " + str(solver.scrp.ms_get_screen_hwnd()))
-        logger.debug("screen rect: " + str(solver.scrp.ms_get_screen_rect(solver.scrp.ms_get_screen_hwnd())))
+        logger.debug("screen handle: " + str(solver.screen_processor.ms_get_screen_hwnd()))
+        logger.debug("screen rect: " + str(solver.screen_processor.ms_get_screen_rect(solver.screen_processor.ms_get_screen_hwnd())))
         # solver.scrp.screen_capture(800,600, save=True, save_name="dta.png")
         while True:
             img = solver.capture_roi()

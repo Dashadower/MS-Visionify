@@ -31,7 +31,7 @@ while True:
         cropped_img = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]]
         if playerpos != 0:
             cv2.circle(cropped_img, playerpos, 3, (0, 0, 255), -1)
-        if pathextractor.platforms:
+        if pathextractor.platforms or pathextractor.oneway_platforms:
             for key, platform in pathextractor.platforms.items():
                 cv2.line(cropped_img,(platform.start_x, platform.start_y), (platform.end_x, platform.end_y),(0,255,0), 2)
             for key, platform in pathextractor.oneway_platforms.items():
@@ -56,4 +56,5 @@ while True:
         input_mode *= -1
 
     elif inp == ord("s"):
-        pathextractor.save("mapdata.platform", area)
+        filename = input("file name(with extension)?")
+        pathextractor.save(filename+".platform", area)
