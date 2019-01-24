@@ -113,7 +113,7 @@ class StaticImageProcessor:
 
         self.maximum_minimap_area = 40000
 
-        self.default_minimap_scan_area = [0, 40, 400, 300]
+        self.default_minimap_scan_area = [0, 60, 400, 300]  # x1, y1, x2, y2
 
         # Minimap player marker original BGR: 68, 221, 255
         self.lower_player_marker = np.array([67, 220, 254])  # B G R

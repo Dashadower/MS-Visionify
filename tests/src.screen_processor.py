@@ -14,11 +14,12 @@ while True:
     st = time.time()
     playerpos = scrp.find_player_minimap_marker(area)
     et = time.time()
-    print("regular", et - st)
+    #print("regular", et - st)
 
     regular_find = scrp.bgr_img[area[1]:area[1] + area[3], area[0]:area[0] + area[2]].copy()
     if playerpos:
         cv2.circle(regular_find, playerpos, 4, (255, 0, 0), -1)
+        print(playerpos)
     regular_find = imutils.resize(regular_find, width=400)
     cv2.imshow("regular vs templ", regular_find)
 

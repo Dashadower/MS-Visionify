@@ -49,9 +49,9 @@ class PlayerController:
         self.x_movement_enforce_rate = 15  # refer to optimized_horizontal_move
 
         self.moonlight_slash_x_radius = 13  # exceed: moonlight slash's estimalte x hitbox RADIUS in minimap coords.
-        self.moonlight_slash_delay = 1.0  # delay after using MS where character is not movable
+        self.moonlight_slash_delay = 1.0 * 0.45  # delay after using MS where character is not movable
 
-        self.horizontal_movement_threshold = 15
+        self.horizontal_movement_threshold = self.moonlight_slash_x_radius * 2.4 # Glide instead of walk if distance greater than threshold
         self.last_shield_chase_time = 0
         self.shield_chase_cooldown = 6
         self.shield_chase_delay = 1.0  # delay after using SC where character is not movable
@@ -76,7 +76,9 @@ class PlayerController:
             if scrp_ret_val:
                 player_coords_x, player_coords_y = scrp_ret_val
             else:
-                raise Exception("screen_processor did not return coordinates!!")
+                #raise Exception("screen_processor did not return coordinates!!")
+                player_coords_x = self.x
+                player_coords_y = self.y
         self.x, self.y = player_coords_x, player_coords_y
 
     def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
@@ -161,6 +163,7 @@ class PlayerController:
         This function will, while moving towards goal_x, constantly use exceed: moonlight slash and not overlapping
         This function currently does not have an time enforce implementation, meaning it may fall into an infinite loop
         if player coordinates are not read correctly.
+        X coordinate max error on flat surface: +- 5 pixels
         :param goal_x:  minimap x goal coordinate.
         :return: None
         """
@@ -176,8 +179,8 @@ class PlayerController:
             else:
                 while True:
                     self.update()
-                    #print("ms cpos: ",self.x, self.y)
-                    if self.x <= goal_x:
+
+                    if self.x <= goal_x + self.horizontal_goal_offset:
                         break
 
                     elif abs(self.x - goal_x) < self.moonlight_slash_x_radius * 2:
@@ -186,13 +189,11 @@ class PlayerController:
                         self.moonlight_slash()
 
                     else:
-                        #print("ms - moving to", self.x - self.moonlight_slash_x_radius * 2)
                         self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
-                        #print("ms - attack")
+
                         self.moonlight_slash()
-                        #print("ms -done")
-                        #time.sleep(0.5)
+
 
         elif loc_delta < 0:
             # right movement
@@ -202,8 +203,8 @@ class PlayerController:
             else:
                 while True:
                     self.update()
-                    #print("ms cpos: ", self.x, self.y)
-                    if self.x >= goal_x:
+
+                    if self.x >= goal_x - self.horizontal_goal_offset:
                         break
 
                     elif abs(goal_x - self.x) < self.moonlight_slash_x_radius * 2:
@@ -212,13 +213,11 @@ class PlayerController:
                         self.moonlight_slash()
 
                     else:
-                        #print("ms - moving to", self.x + self.moonlight_slash_x_radius * 2)
                         self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
-                        #print("ms - attack")
+
                         self.moonlight_slash()
-                        #print("ms - done")
-                        #time.sleep(0.5)
+
 
 
 
@@ -251,7 +250,7 @@ class PlayerController:
                     self.update()
                     # Problem with synchonizing player_pos with self.x and self.y. Needs to get resolved.
                     # Current solution: Just call self.update() (not good for redundancy)
-                    if self.x >= goal_x:
+                    if self.x >= goal_x - self.horizontal_goal_offset:
                         # Reached or exceeded destination x coordinates
                         break
 
@@ -292,7 +291,7 @@ class PlayerController:
                     self.update()
                     # Problem with synchonizing player_pos with self.x and self.y. Needs to get resolved.
                     # Current solution: Just call self.update() (not good for redundancy)
-                    if self.x <= goal_x:
+                    if self.x <= goal_x + self.horizontal_goal_offset:
                         # Reached or exceeded destination x coordinates
                         break
 
@@ -474,11 +473,13 @@ class PlayerController:
             self.key_mgr.single_press(self.keymap["thousand_sword"])
             self.last_thousand_sword_time = time.time()
             self.overload_stack += 5
+            time.sleep(self.thousand_sword_delay)
 
     def shield_chase(self):
         if time.time() - self.last_shield_chase_time > self.shield_chase_cooldown:
             self.key_mgr.single_press(self.keymap["shield_chase"])
             self.last_shield_chase_time = time.time()
+            time.sleep(self.shield_chase_delay)
 
     def release_overload(self):
         if self.overload_stack >= 18:

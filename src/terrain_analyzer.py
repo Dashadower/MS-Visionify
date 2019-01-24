@@ -111,9 +111,9 @@ class PathAnalyzer:
     def calculate_navigation_map(self):
         """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
         for key, platform in self.platforms.items():
-            self.find_available_moves(key)
+            self.calculate_interplatform_solutions(key)
         for key, platform in self.oneway_platforms.items():
-            self.find_available_moves(key)
+            self.calculate_interplatform_solutions(key, oneway=True)
 
     def move_platform(self, from_platform, to_platform):
         """Update navigation map visit counter to keep track of visited platforms when moded
@@ -121,15 +121,19 @@ class PathAnalyzer:
         :param to_platform: destination platform hash"""
 
         need_reset = True
-        for method in self.platforms[from_platform].solutions:
-            solution = method
-            if solution.to_hash == to_platform:
-                self.platforms[solution.to_hash].last_visit = 0
-                method.visited = True
+        try:
+            for method in self.platforms[from_platform].solutions:
+                solution = method
+                if solution.to_hash == to_platform:
+                    self.platforms[solution.to_hash].last_visit = 0
+                    method.visited = True
 
-            else:
-                if not method.visited:
-                    need_reset = False
+                else:
+                    if not method.visited:
+                        need_reset = False
+        except:
+            need_reset = False
+            pass
 
         for key, platform in self.platforms.items():
             if key != to_platform and key != from_platform:
@@ -146,10 +150,16 @@ class PathAnalyzer:
         :param current_platform: hash of departing platform
         :return: solution list in solution array of current_playform
         """
-        for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x.to_hash].last_visit, reverse=True):
-            if not solution.visited:
+        try:
+            for solution in sorted(self.platforms[current_platform].solutions, key= lambda x: self.platforms[x.to_hash].last_visit, reverse=True):
+                """if not solution.visited:
+                    return solution"""
                 return solution
-
+        except KeyError:
+            for solution in sorted(self.oneway_platforms[current_platform].solutions, key= lambda x: self.platforms[x.to_hash].last_visit, reverse=True):
+                """if not solution.visited:
+                    return solution"""
+                return solution
 
     def input_oneway_platform(self, inp_x, inp_y):
         """input values to use in finding one way(platforms which can't be a destination platform)
@@ -161,7 +171,7 @@ class PathAnalyzer:
             self.visited_coordinates.append(converted_tuple)
 
         # check if in continous platform
-        if inp_y == self.last_y and self.last_x >= self.last_x - self.platform_variance and self.last_x <= self.last_x + self.platform_variance:
+        if inp_y >= self.last_y-4 and inp_y <= self.last_y+4 and self.last_x >= self.last_x - self.platform_variance and self.last_x <= self.last_x + self.platform_variance:
             # check if current coordinate is within platform being tracked
             if converted_tuple not in self.current_oneway_coords:
                 self.current_oneway_coords.append(converted_tuple)
@@ -229,7 +239,7 @@ class PathAnalyzer:
         self.last_x = inp_x
         self.last_y = inp_y
 
-    def find_available_moves(self, hash):
+    def calculate_interplatform_solutions(self, hash, oneway=False):
         """Find relationships between platform, like how one platform links to another using movement.
         :param platform : platform hash in self.platforms Platform
         :return : None
@@ -244,7 +254,10 @@ class PathAnalyzer:
         """
 
         return_map_dict = []
-        platform = self.platforms[hash]
+        if oneway:
+            platform = self.oneway_platforms[hash]
+        else:
+            platform = self.platforms[hash]
         platform.solutions = []
         for key, other_platform in self.platforms.items():
             if platform.hash != key:
