@@ -122,7 +122,12 @@ class StaticImageProcessor:
         self.upper_rune_marker = np.array([255, 103, 222])
 
         self.hwnd = self.img_handle.ms_get_screen_hwnd()
-        self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+        self.ms_screen_rect = None
+        if self.hwnd:
+            self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+
+        else:
+            raise Exception("Could not find MapleStory window!!")
 
 
 
@@ -135,6 +140,9 @@ class StaticImageProcessor:
             rgb_img = src
         else:
             if update_rect:
+                self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
+
+            if not self.ms_screen_rect:
                 self.ms_screen_rect = self.img_handle.ms_get_screen_rect(self.hwnd)
             rgb_img = self.img_handle.capture(set_focus, self.hwnd, self.ms_screen_rect)
             if not rgb_img:
