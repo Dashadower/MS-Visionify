@@ -148,33 +148,34 @@ class MacroController:
 
                 if rune_platform_hash:
                     rune_solutions = self.terrain_analyzer.pathfind(self.current_platform_hash, rune_platform_hash)
-                    for solution in rune_solutions:
-                        if self.player_manager.x < solution.lower_bound[0]:
-                            # We are left of solution bounds.
-                            # print("run sweep move")
-                            self.player_manager.horizontal_move_goal(solution.lower_bound[0])
+                    if rune_solutions:
+                        for solution in rune_solutions:
+                            if self.player_manager.x < solution.lower_bound[0]:
+                                # We are left of solution bounds.
+                                # print("run sweep move")
+                                self.player_manager.horizontal_move_goal(solution.lower_bound[0])
 
-                        else:
-                            # We are right of solution bounds
-                            # print("run sweep move")
-                            self.player_manager.horizontal_move_goal(solution.upper_bound[0])
-                        time.sleep(1)
-                        rune_movement_type = solution.method
-                        if rune_movement_type == ta.METHOD_DROP:
-                            self.player_manager.drop()
+                            else:
+                                # We are right of solution bounds
+                                # print("run sweep move")
+                                self.player_manager.horizontal_move_goal(solution.upper_bound[0])
                             time.sleep(1)
-                        elif rune_movement_type == ta.METHOD_JUMPL:
-                            self.player_manager.jumpl_double()
-                            time.sleep(0.5)
-                        elif rune_movement_type == ta.METHOD_JUMPR:
-                            self.player_manager.jumpr_double()
-                            time.sleep(0.5)
-                        elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
-                            self.player_manager.dbljump_max()
-                            time.sleep(1)
-                        elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
-                            self.player_manager.dbljump_half()
-                            time.sleep(1)
+                            rune_movement_type = solution.method
+                            if rune_movement_type == ta.METHOD_DROP:
+                                self.player_manager.drop()
+                                time.sleep(1)
+                            elif rune_movement_type == ta.METHOD_JUMPL:
+                                self.player_manager.jumpl_double()
+                                time.sleep(0.5)
+                            elif rune_movement_type == ta.METHOD_JUMPR:
+                                self.player_manager.jumpr_double()
+                                time.sleep(0.5)
+                            elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
+                                self.player_manager.dbljump_max()
+                                time.sleep(1)
+                            elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
+                                self.player_manager.dbljump_half()
+                                time.sleep(1)
 
                         time.sleep(0.5)
 
