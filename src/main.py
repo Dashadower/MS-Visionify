@@ -114,7 +114,7 @@ class SetKeyMap(tk.Toplevel):
     def onPress(self, event,  key_name):
         found = False
         for key, value in keysym_map.items():
-            if event.keysym == key:
+            if event.keysym == key or str(event.keysym).upper() == key:
                 self.keymap_data[key_name] = [value, self.keymap_data[key_name][1]]
                 self.labels[key_name].set(key)
                 found = True
@@ -409,9 +409,9 @@ class AuthScreen(tk.Frame):
             addpc_res = authentication.add_pc(id, password)
 
             if addpc_res[0] == 2:
+                showinfo("인증 성공", "인증이 완료되었습니다. 프로그램을 다시 실행해주세요.")
+                sys.exit()
 
-                # success
-                pass
             elif addpc_res[0] == 0:
                 destroy_child_widgets(self)
                 tk.Label(self, text="PC수 한도만큼 PC가 등록되어 PC등록에 실패했습니다.").grid(row=0, column=0)
