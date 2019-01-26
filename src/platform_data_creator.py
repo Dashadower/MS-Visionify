@@ -12,6 +12,7 @@ def create_platform_file(file_name):
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     default_logger.addHandler(fh)
+
     try:
         wincap = MapleScreenCapturer()
         scrp = StaticImageProcessor(wincap)
@@ -21,7 +22,7 @@ def create_platform_file(file_name):
         input_mode = 1
         while True:
             scrp.update_image(set_focus=False)
-
+            print("R2")
             if not area == 0:
                 playerpos = scrp.find_player_minimap_marker(area)
 
@@ -46,9 +47,6 @@ def create_platform_file(file_name):
 
             inp = cv2.waitKey(1)
 
-            if cv2.getWindowProperty("pdc-screencap", cv2.WND_PROP_VISIBLE) <= 1:
-                cv2.destroyWindow("pdc-screencap")
-                break
 
             if inp == ord('q'):
                 cv2.destroyWindow("pdc-screencap")
@@ -66,3 +64,4 @@ def create_platform_file(file_name):
                 break
     except:
         default_logger.exception("exception if platform data creator")
+

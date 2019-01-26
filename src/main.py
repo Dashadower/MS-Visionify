@@ -46,6 +46,7 @@ class CreatePlatformFileFrame(tk.Toplevel):
         tk.Button(self, text="파일 저장 경로 지정", command=self.set_file_name).grid(row=1, column=0)
         tk.Button(self, text="생성툴 실행하기", command=self.onLaunch).grid(row=2, column=0)
         tk.Label(self, text="사용법은 매뉴얼을 참고해주세요.").grid(row=3, column=0)
+        tk.Label(self, text="생성툴은 q를 눌러야 종료됩니다.").grid(row=4, column=0)
 
         if not MapleScreenCapturer().ms_get_screen_hwnd():
             showwarning("데이터파일 생성기", "메이플 창을 찾지 못했습니다. 메이플을 실행해 주세요")
