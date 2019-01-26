@@ -98,6 +98,26 @@ class PathAnalyzer:
                 minimap_coords = data["minimap"]
             return minimap_coords 
 
+    def verify_data_file(self, filename):
+        """
+        Verify a platform file to see if it is in correct format
+        :param filename: file path
+        :return: 0 if valid, 1 if corrupt or errored
+        """
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                try:
+                    data = pickle.load(f)
+                    platforms = data["platforms"]
+                    oneway_platforms = data["oneway"]
+                    minimap_coords = data["minimap"]
+                except:
+                    return 1
+            return minimap_coords
+        else:
+            return 1
+
+
     def hash(self, data):
         """
         Returns salted md5 hash of data

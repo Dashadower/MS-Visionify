@@ -29,7 +29,10 @@ class PlayerController:
         self.x = None
         self.y = None
 
-        self.keymap = keymap
+
+        self.keymap = {}
+        for key, value in keymap.items():
+            self.keymap[key] = value[0]
         self.jump_key = self.keymap["jump"]
         self.key_mgr = key_mgr
         self.screen_processor = screen_handler

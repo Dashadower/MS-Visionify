@@ -1,5 +1,5 @@
 import directinput_constants as dic
-import time, ctypes, threading
+import time, ctypes
 from win32api import GetKeyState
 from win32con import VK_NUMLOCK
 
@@ -57,6 +57,12 @@ def ReleaseKey(hexKeyCode):
     ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))  # 0x0002: KEYEVENTF_KEYUP
 
 
+def toggle_numlock():
+    if GetKeyState(VK_NUMLOCK):
+        PressKey(dic.DIK_NUMLOCK)
+        time.sleep(0.05)
+        ReleaseKey(dic.DIK_NUMLOCK)
+
 class KeyboardInputManager:
     """
     This is an attempt to manage input from a single source. It remembers key "states" , which consists of keypress
@@ -74,6 +80,7 @@ class KeyboardInputManager:
         self.key_state = {}
         self.actual_key_state = {}
         self.debug = debug
+        toggle_numlock()
 
     def get_key_state(self, key_code=None):
         """
@@ -153,16 +160,11 @@ class KeyboardInputManager:
         self.translate_key_state()
 
 DEFAULT_KEY_MAP = {
-    "jump": dic.DIK_ALT,
-    "moonlight_slash": dic.DIK_A,
-    "thousand_sword": dic.DIK_F,
-    "release_overload": dic.DIK_Q,
-    "demon_strike": dic.DIK_1,
-    "shield_chase": dic.DIK_S
+    "jump": [dic.DIK_ALT, "점프"],
+    "moonlight_slash": [dic.DIK_A, "문라이트 슬래쉬"],
+    "thousand_sword": [dic.DIK_F, "사우전드 소드"],
+    "release_overload": [dic.DIK_Q, "릴리즈 오버로드"],
+    "demon_strike": [dic.DIK_1, "데몬 스트라이크"],
+    "shield_chase": [dic.DIK_S, "실드 체이싱"]
 }
-
-class AdvancedThreadedKeyboardHandler(KeyboardInputManager):
-    def __init__(self, tickrate=0.01):
-        super().__init__()
-        pass
 

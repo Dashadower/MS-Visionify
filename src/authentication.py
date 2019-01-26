@@ -12,11 +12,12 @@ def authenticate_device():
     payload = {
         "uuid":get_diskdrive_hash()
     }
-    request = requests.post(server, payload)
+
     try:
+        request = requests.post(server, payload)
         data = request.json()
     except:
-        return -1
+        return -1, "fail"
     if data["result"] == "fail":
         if data["type"] == "expired":
             errortext = "사용기간이 만료되었습니다. 카카오톡으로 문의 바랍니다."
@@ -29,7 +30,32 @@ def authenticate_device():
     elif data["result"] == "success":
         return 2, "인증되었습니다", data["UserID"], data["time"]
 
+def add_pc(username, password):
+    server = "http://ms-rbw.appspot.com/add_pc"
+    payload = {
+        "uuid": get_diskdrive_hash(),
+        "UserID": username,
+        "UserPW": password,
+        "pcname": str(os.getenv("COMPUTERNAME"))
+    }
 
+    try:
+        request = requests.post(server, payload)
+        data = request.json()
+    except:
+        return -1, "fail"
+
+    if data["result"] == "fail":
+        if data["result"] == "fail":
+            if data["type"] == "too_many_pc":
+
+                return 0, int(data["maxcount"]), int(data["currentcount"])
+
+            elif data["type"] == "auth_error":
+                return 1, "auth_error"
+
+    elif data["result"] == "success":
+        return 2, int(data["maxcount"]), int(data["currentcount"])
 
 
 

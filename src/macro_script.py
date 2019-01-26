@@ -13,14 +13,14 @@ class MacroController:
         self.screen_capturer = sp.MapleScreenCapturer()
         self.logger = logging.getLogger("MacroController")
         self.logger.setLevel(logging.DEBUG)
-        self.logger.debug("MacroController init")
+
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         fh = logging.FileHandler("logging.log")
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
-
+        self.logger.debug("MacroController init")
         self.screen_processor = sp.StaticImageProcessor(self.screen_capturer)
         self.terrain_analyzer = ta.PathAnalyzer()
         self.keyhandler = km.KeyboardInputManager()
@@ -51,6 +51,11 @@ class MacroController:
 
         for obj in range(100-len(self.choices)):
             self.choices.append(0)
+        self.logger.debug("MacroController init finished")
+    def load_and_process_platform_map(self, path):
+        self.terrain_analyzer.load(path)
+        self.terrain_analyzer.calculate_navigation_map()
+        self.logger.debug("Loaded platform data %s"%(path))
 
     def distance(self, x1, y1, x2, y2):
         return math.sqrt((x1-x2)**2 + (y1-y2)**2)
@@ -65,13 +70,14 @@ class MacroController:
         :return: loop exit code
         """
         # Check if MapleStory window is alive
+
         if not self.screen_capturer.ms_get_screen_hwnd():
             self.logger.debug("Failed to get MS screen rect")
             self.abort()
             return -1
 
         # Update Screen
-        self.screen_processor.update_image()
+        self.screen_processor.update_image(set_focus=False)
 
         # Update Constants
         player_minimap_pos = self.screen_processor.find_player_minimap_marker()
@@ -139,12 +145,12 @@ class MacroController:
                     idx += 1
 
             self.navmap_reset_type *= -1
-            print("navigation map reset and randomized at loop #", self.loop_count)
+            self.logger.debug("navigation map reset and randomized at loop #%d"%(self.loop_count))
 
         # Placeholder for Rune Detector
         rune_coords = self.screen_processor.find_rune_marker()
         if rune_coords:
-            print("need to solve rune at", rune_coords)
+            self.logger.debug("need to solve rune at {0}".format(rune_coords))
             rune_solve_time_offset = (time.time() - self.player_manager.last_rune_solve_time)
             if rune_solve_time_offset >= self.player_manager.rune_cooldown or rune_solve_time_offset <= 15:
                 rune_platform_hash = None
@@ -211,7 +217,7 @@ class MacroController:
         # If we know our next platform destination, we can make our path even more efficient
         next_platform_solution = self.terrain_analyzer.select_move(self.current_platform_hash)
         #print("next platform solution:", next_platform_solution.method, next_platform_solution.to_hash)
-
+        self.logger.debug("next solution destination: %s"%(next_platform_solution.to_hash))
         self.goal_platform_hash = next_platform_solution.to_hash
 
         # lookahead pathing
@@ -286,7 +292,8 @@ class MacroController:
         return 0
 
     def abort(self):
-        pass
+        self.logger.debug("aborted")
+        self.keyhandler.reset()
 
     def randomize_skill(self):
         selection = random.choice(self.choices)

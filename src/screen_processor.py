@@ -45,8 +45,10 @@ class MapleScreenCapturer:
               )
             size = (rect.left, rect.top, rect.bottom,  rect.bottom)
         else:
-            size = win32gui.GetWindowRect()
-        return win32gui.GetWindowRect(hwnd)  # returns x1, y1, x2, y2
+            if not hwnd:
+                hwnd = self.ms_get_screen_hwnd()
+            size = win32gui.GetWindowRect(hwnd)
+        return size  # returns x1, y1, x2, y2
 
     def capture(self, set_focus=True, hwnd=None, rect=None):
         """Returns Maplestory window screenshot handle(not np.array!)
@@ -159,9 +161,10 @@ class StaticImageProcessor:
         blurred_img = cv2.GaussianBlur(cropped, (3,3), 3)
         morphed_img = cv2.erode(blurred_img, (7,7))
         canny = cv2.Canny(morphed_img, threshold1=180, threshold2=255)
-
-        im2, contours, hierachy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+        try:
+            im2, contours, hierachy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        except:
+            contours, hierachy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
             biggest_contour = max(contours, key = cv2.contourArea)
             if cv2.contourArea(biggest_contour) >= 100 and cv2.contourArea(biggest_contour) >= self.minimap_area and cv2.contourArea(biggest_contour) <= self.maximum_minimap_area:
