@@ -103,15 +103,16 @@ class KeyboardInputManager:
         :return: None"""
         self.key_state[key_code] = value
 
-    def single_press(self, key_code, duration=0.08):
+    def single_press(self, key_code, duration=0.08, additional_duration=0):
         """
         Presses key_code for duration seconds. Since it uses time.sleep(), it is a blocking call.
         :param key_code: DIK key code of key
         :param duration: Float of keypress duration in seconds
+        :param additional_duration: additinal delay to be added
         :return: None
         """
         self._direct_press(key_code)
-        time.sleep(duration)
+        time.sleep(duration+additional_duration)
         self._direct_release(key_code)
 
     def translate_key_state(self):
@@ -165,6 +166,7 @@ DEFAULT_KEY_MAP = {
     "thousand_sword": [dic.DIK_F, "사우전드 소드"],
     "release_overload": [dic.DIK_Q, "릴리즈 오버로드"],
     "demon_strike": [dic.DIK_1, "데몬 스트라이크"],
-    "shield_chase": [dic.DIK_S, "실드 체이싱"]
+    "shield_chase": [dic.DIK_S, "실드 체이싱"],
+    "holy_symbol": [dic.DIK_4, "홀리 심볼"]
 }
 

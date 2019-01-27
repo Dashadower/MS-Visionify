@@ -135,6 +135,7 @@ class PathAnalyzer:
         :param goal_hash:  hash of goal platform
         :return: list, in order of solutions to reach goal
         """
+
         try:
             start_platform = self.platforms[start_hash]
         except KeyError:
@@ -151,7 +152,7 @@ class PathAnalyzer:
             current_solution, paths = bfs_queue.pop()
             visited_platform_hashes.append(current_solution.from_hash)
             if current_solution.to_hash == goal_hash:
-                return paths
+                calculated_paths.append(paths)
             try:
                 next_solution = self.platforms[current_solution.to_hash].solutions
             except KeyError:
@@ -161,6 +162,11 @@ class PathAnalyzer:
                     cv = paths
                     cv.append(solution)
                     bfs_queue.append([solution, cv])
+
+        if calculated_paths:
+            return sorted(calculated_paths, key=lambda x: len(x))[0]
+        else:
+            return calculated_paths
 
 
     def calculate_navigation_map(self):

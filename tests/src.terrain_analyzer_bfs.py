@@ -8,7 +8,7 @@ print(__file__)
 print(pathextractor.platforms)
 pathextractor.calculate_navigation_map()
 for key, val in pathextractor.platforms.items():
-    print(key)
+    print(key, val.start_x, val.end_x, val.start_y)
     print(val.solutions)
     print(val.last_visit)
     print("-------------------")

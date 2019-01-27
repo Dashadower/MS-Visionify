@@ -2,6 +2,7 @@ import keystate_manager as km
 import player_controller as pc
 import screen_processor as sp
 import terrain_analyzer as ta
+import directinput_constants as dc
 import rune_solver as rs
 import logging, math, time, random, sys
 
@@ -35,22 +36,17 @@ class MacroController:
 
         self.rune_model_path = r"arrow_classifier_keras_gray.h5"
         self.rune_solver = rs.RuneDetector(self.rune_model_path, screen_capturer=self.screen_capturer, key_mgr=self.keyhandler)
+        self.rune_platform_offset = 2
 
         self.loop_count = 0  # How many loops did we loop over?
         self.reset_navmap_loop_count = 10  # every x times reset navigation map, scrambling pathing
-        self.navmap_reset_type = 1  # navigation map reset type. 1 for random, -1 for just reset
-        # Initialization code for self.randomize_skill
-        self.thousand_sword_percent = 30
-        self.shield_chase_percent = 2
-        self.choices = []
+        self.navmap_reset_type = 1  # navigation map reset type. 1 for random, -1 for just reset. GETS ALTERNATED
 
-        for obj in range(self.thousand_sword_percent):
-            self.choices.append(1)
-        for obj in range(self.shield_chase_percent):
-            self.choices.append(2)
+        self.walk_probability = 5
+        # This sets random.randint(0, walk_probability) to decide of moonlight slash should just walk instead of glide
+        # Probability of walking is (1/walk_probability) * 100
 
-        for obj in range(100-len(self.choices)):
-            self.choices.append(0)
+
         self.logger.debug("MacroController init finished")
     def load_and_process_platform_map(self, path):
         self.terrain_analyzer.load(path)
@@ -152,17 +148,17 @@ class MacroController:
         if rune_coords:
             self.logger.debug("need to solve rune at {0}".format(rune_coords))
             rune_solve_time_offset = (time.time() - self.player_manager.last_rune_solve_time)
-            if rune_solve_time_offset >= self.player_manager.rune_cooldown or rune_solve_time_offset <= 15:
+            if rune_solve_time_offset >= self.player_manager.rune_cooldown or rune_solve_time_offset <= 30:
                 rune_platform_hash = None
                 for key, platform in self.terrain_analyzer.platforms.items():
-                    if rune_coords[1] >= platform.start_y - 1 and \
-                            rune_coords[1] <= platform.start_y + 1 and \
+                    if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
+                            rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
                             rune_coords[0] >= platform.start_x and \
                             rune_coords[0] <= platform.end_x:
                         rune_platform_hash = key
                 for key, platform in self.terrain_analyzer.oneway_platforms.items():
-                    if rune_coords[1] >= platform.start_y - 1 and \
-                            rune_coords[1] <= platform.start_y + 1 and \
+                    if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
+                            rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
                             rune_coords[0] >= platform.start_x and \
                             rune_coords[0] <= platform.end_x:
                         rune_platform_hash = key
@@ -206,9 +202,17 @@ class MacroController:
 
                     time.sleep(1)
                     self.rune_solver.press_space()
-                    self.rune_solver.solve_auto()
-                    time.sleep(2)
+                    time.sleep(1.5)
+                    solve_result = self.rune_solver.solve_auto()
+                    self.logger.debug("rune_solver.solve_auto results: %d" % (solve_result))
+                    print("solve r esult", solve_result)
+                    if solve_result == -1:
+                        self.logger.debug("rune_Solver.solve_auto failed to solve")
+                        for x in range(4):
+                            self.keyhandler.single_press(dc.DIK_LEFT)
+
                     self.player_manager.last_rune_solve_time = time.time()
+                    time.sleep(2)
 
         # End Placeholder
 
@@ -237,9 +241,10 @@ class MacroController:
             lookahead_lb = next_platform_solution.lower_bound[0]
             lookahead_ub = next_platform_solution.upper_bound[0]
 
-        self.randomize_skill()
+        self.player_manager.shield_chase()
+        self.player_manager.randomize_skill()
 
-        # Find the closest location to next_platform_solution
+        # Find coordinates to move to next platform
         if self.player_manager.x >= next_platform_solution.lower_bound[0] and self.player_manager.x <= next_platform_solution.upper_bound[0]:
             # We are within the solution bounds. attack within solution range and move
             if abs(self.player_manager.x - next_platform_solution.lower_bound[0]) < abs(self.player_manager.x - next_platform_solution.upper_bound[0]):
@@ -247,25 +252,35 @@ class MacroController:
                 in_solution_movement_goal = lookahead_ub
             else:
                 in_solution_movement_goal = lookahead_lb
-            self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal)
+
+            if random.randint(0, self.walk_probability) == 1:
+                self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, glide=False)
+            else:
+                self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal)
 
         else:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
             if self.player_manager.x < next_platform_solution.lower_bound[0]:
                 # We are left of solution bounds.
                 #print("run sweep move")
-                self.player_manager.moonlight_slash_sweep_move(lookahead_ub)
+                if random.randint(0, self.walk_probability) == 1:
+                    self.player_manager.moonlight_slash_sweep_move(lookahead_ub, glide=False)
+                else:
+                    self.player_manager.moonlight_slash_sweep_move(lookahead_ub)
 
             else:
                 # We are right of solution bounds
                 #print("run sweep move")
-                self.player_manager.moonlight_slash_sweep_move(lookahead_lb)
+                if random.randint(0, self.walk_probability) == 1:
+                    self.player_manager.moonlight_slash_sweep_move(lookahead_lb, glide=False)
+                else:
+                    self.player_manager.moonlight_slash_sweep_move(lookahead_lb)
 
         time.sleep(0.1)
 
         # All movement and attacks finished. Now perform movement
         movement_type = next_platform_solution.method
-        #self.player_manager.shield_chase()
+
 
         #print("actuating movement...", movement_type)
 
@@ -285,8 +300,11 @@ class MacroController:
             self.player_manager.dbljump_half()
             time.sleep(1)
 
+
+        self.player_manager.holy_symbol()
         self.player_manager.release_overload()
         time.sleep(0.05)
+
         # Finished
         self.loop_count += 1
         return 0
@@ -295,13 +313,6 @@ class MacroController:
         self.logger.debug("aborted")
         self.keyhandler.reset()
 
-    def randomize_skill(self):
-        selection = random.choice(self.choices)
-        if selection == 0:
-            return 0
-        elif selection == 1:
-            self.player_manager.thousand_sword()
-        elif selection == 2:
-            self.player_manager.shield_chase()
+
 
 

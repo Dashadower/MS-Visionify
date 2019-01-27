@@ -43,7 +43,7 @@ class MapleScreenCapturer:
               ctypes.byref(rect),
               ctypes.sizeof(rect)
               )
-            size = (rect.left, rect.top, rect.bottom,  rect.bottom)
+            size = (rect.left, rect.top, rect.right, rect.bottom)
         else:
             if not hwnd:
                 hwnd = self.ms_get_screen_hwnd()

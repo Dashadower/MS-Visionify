@@ -1,6 +1,6 @@
 from directinput_constants import DIK_RIGHT, DIK_DOWN, DIK_LEFT, DIK_UP, DIK_ALT
 from keystate_manager import DEFAULT_KEY_MAP
-import time, math
+import time, math, random
 # simple jump vertical distance: about 6 pixels
 
 class PlayerController:
@@ -66,7 +66,24 @@ class PlayerController:
         self.rune_cooldown = 60 * 15  # 15 minutes for rune cooldown
         self.last_rune_solve_time = 0
 
+        self.holy_symbol_cooldown = 60 * 3 + 1
+        self.last_holy_symbol_time = 0
+        self.holy_symbol_delay = 1.7
+
         self.overload_stack = 0
+
+        # Initialization code for self.randomize_skill
+        self.thousand_sword_percent = 30
+        self.shield_chase_percent = 30
+        self.choices = []
+
+        for obj in range(self.thousand_sword_percent):
+            self.choices.append(1)
+        for obj in range(self.shield_chase_percent):
+            self.choices.append(2)
+
+        for obj in range(100 - len(self.choices)):
+            self.choices.append(0)
 
     def update(self, player_coords_x=None, player_coords_y=None):
         """
@@ -163,13 +180,14 @@ class PlayerController:
         y = slope * x + b
         return y
 
-    def moonlight_slash_sweep_move(self, goal_x):
+    def moonlight_slash_sweep_move(self, goal_x, glide=True):
         """
         This function will, while moving towards goal_x, constantly use exceed: moonlight slash and not overlapping
         This function currently does not have an time enforce implementation, meaning it may fall into an infinite loop
         if player coordinates are not read correctly.
         X coordinate max error on flat surface: +- 5 pixels
-        :param goal_x:  minimap x goal coordinate.
+        :param goal_x: minimap x goal coordinate.
+        :param glide: If True, will used optimized_horizontal_move. Else, will use horizontal_move_goal
         :return: None
         """
         loc_delta = self.x - goal_x
@@ -189,16 +207,22 @@ class PlayerController:
                         break
 
                     elif abs(self.x - goal_x) < self.moonlight_slash_x_radius * 2:
-                        self.optimized_horizontal_move(goal_x)
+                        if glide:
+                            self.optimized_horizontal_move(goal_x)
+                        else:
+                            self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         self.moonlight_slash()
+                        self.randomize_skill()
 
                     else:
-                        self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
+                        if glide:
+                            self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
+                        else:
+                            self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
-
                         self.moonlight_slash()
-
+                        self.randomize_skill()
 
         elif loc_delta < 0:
             # right movement
@@ -213,19 +237,23 @@ class PlayerController:
                         break
 
                     elif abs(goal_x - self.x) < self.moonlight_slash_x_radius * 2:
-                        self.optimized_horizontal_move(goal_x)
+                        if glide:
+                            self.optimized_horizontal_move(goal_x)
+                        else:
+                            self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         self.moonlight_slash()
+                        self.randomize_skill()
 
                     else:
-                        self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
+                        if glide:
+                            self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
+                        else:
+                            self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2)
                         time.sleep(0.1)
 
                         self.moonlight_slash()
-
-
-
-
+                        self.randomize_skill()
 
     def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
         """
@@ -357,7 +385,7 @@ class PlayerController:
                 if self.x <= goal_x+self.horizontal_goal_offset:
                     self.key_mgr._direct_release(DIK_LEFT)
                     break
-        self.key_mgr.reset()
+
 
     def dbljump_max(self):
         """Warining: is a blocking call"""
@@ -469,24 +497,51 @@ class PlayerController:
         self.key_mgr._direct_release(self.jump_key)
 
     def moonlight_slash(self):
-        self.key_mgr.single_press(self.keymap["moonlight_slash"])
+        count = random.randrange(1,3)
+        for c in range(count):
+            self.key_mgr.single_press(self.keymap["moonlight_slash"], additional_duration=self.random_duration())
         self.overload_stack += 1
         time.sleep(self.moonlight_slash_delay)
 
     def thousand_sword(self):
         if time.time() - self.last_thousand_sword_time > self.thousand_sword_cooldown:
-            self.key_mgr.single_press(self.keymap["thousand_sword"])
+            count = random.randrange(1, 3)
+            for c in range(count):
+                self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=self.random_duration())
             self.last_thousand_sword_time = time.time()
             self.overload_stack += 5
             time.sleep(self.thousand_sword_delay)
 
     def shield_chase(self):
         if time.time() - self.last_shield_chase_time > self.shield_chase_cooldown:
-            self.key_mgr.single_press(self.keymap["shield_chase"])
+            count = random.randrange(1, 3)
+            for c in range(count):
+                self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=self.random_duration())
             self.last_shield_chase_time = time.time()
             time.sleep(self.shield_chase_delay)
 
+    def holy_symbol(self):
+        if time.time() - self.last_holy_symbol_time > self.holy_symbol_cooldown + random.randint(0, 14):
+            self.key_mgr.single_press(self.keymap["holy_symbol"], additional_duration=self.random_duration())
+            self.last_holy_symbol_time = time.time()
+            time.sleep(self.holy_symbol_delay)
+
     def release_overload(self):
-        if self.overload_stack >= 18:
-            self.key_mgr.single_press(self.keymap["release_overload"])
+        if self.overload_stack >= 18 + random.randint(0, 12):
+            self.key_mgr.single_press(self.keymap["release_overload"],additional_duration=self.random_duration())
             self.overload_stack = 0
+
+    def randomize_skill(self):
+        selection = random.choice(self.choices)
+        if selection == 0:
+            return 0
+        elif selection == 1:
+            self.thousand_sword()
+        elif selection == 2:
+            self.shield_chase()
+
+    def random_duration(self, variance=0.05, step=0.01):
+        d = random.randrange(0, variance+step, step=step)
+        if random.choice([1,-1]) == -1:
+            d *= -1
+        return d

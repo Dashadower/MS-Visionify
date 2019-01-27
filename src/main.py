@@ -235,7 +235,8 @@ class MainScreen(tk.Frame):
 
         tk.Label(self.macro_info_frame, text="지형 파일:").grid(row=1, column=0, sticky=N+S+E+W)
         tk.Label(self.macro_info_frame, textvariable=self.platform_file_name).grid(row=1, column=1, sticky=N+S+E+W)
-        tk.Button(self.macro_info_frame, text="파일 선택하기", command=self.onPlatformFileSelect).grid(row=1, column=2, sticky=N+S+E+W)
+        self.platform_file_button = tk.Button(self.macro_info_frame, text="파일 선택하기", command=self.onPlatformFileSelect)
+        self.platform_file_button.grid(row=1, column=2, sticky=N+S+E+W)
 
         self.macro_start_button = tk.Button(self.macro_info_frame, text="매크로 시작", fg="green", command=self.start_macro)
         self.macro_start_button.grid(row=2, column=0, sticky=N+S+E+W)
@@ -273,6 +274,7 @@ class MainScreen(tk.Frame):
                 if not MapleScreenCapturer().ms_get_screen_hwnd():
                     showwarning(APP_TITLE, "메이플 창을 찾지 못했습니다. 메이플을 실행해 주세요")
                 else:
+
                     cap = MapleScreenCapturer()
                     hwnd = cap.ms_get_screen_hwnd()
                     rect = cap.ms_get_screen_rect(hwnd)
@@ -287,12 +289,14 @@ class MainScreen(tk.Frame):
                         self.macro_process_out_queue.put(("start", keymap, self.platform_file_dir.get()))
                         self.macro_start_button.configure(state=DISABLED)
                         self.macro_end_button.configure(state=NORMAL)
+                        self.platform_file_button.configure(state=DISABLED)
 
     def stop_macro(self):
         self.macro_process_out_queue.put(("stop",))
-        self.log("매크로 중지 요청 완료")
+        self.log("매크로 중지 요청 완료. 멈출때까지 잠시만 기다려주세요.")
         self.macro_end_button.configure(state=DISABLED)
         self.macro_start_button.configure(state=NORMAL)
+        self.platform_file_button.configure(state=NORMAL)
 
     def get_keymap(self):
         if os.path.exists("keymap.keymap"):
@@ -318,6 +322,8 @@ class MainScreen(tk.Frame):
             self.macro_pid_infotext.set("실행중..")
             self.macro_process_label.configure(fg="orange")
             self.log("매크로 프로세스 시작중...")
+            self.macro_process_out_queue = multiprocessing.Queue()
+            self.macro_process_in_queue = multiprocessing.Queue()
             p = multiprocessing.Process(target=macro_loop, args=(self.macro_process_out_queue, self.macro_process_in_queue))
             p.daemon = True
 
@@ -331,6 +337,7 @@ class MainScreen(tk.Frame):
             self.macro_process_toggle_button.configure(text="중지하기")
 
         else:
+            self.stop_macro()
             self.macro_process_toggle_button.configure(state=DISABLED)
             self.macro_pid_infotext.set("중지중..")
             self.macro_process_label.configure(fg="orange")

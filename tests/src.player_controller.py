@@ -22,6 +22,6 @@ print(player_cntrlr.x, player_cntrlr.y)
 
 player_cntrlr.moonlight_slash_sweep_move(player_cntrlr.x + 100)
 #player_cntrlr.jumpr_double()
-player_cntrlr.jumpr_glide()
+#player_cntrlr.jumpr_glide()
 print(player_cntrlr.x, player_cntrlr.y)
 
