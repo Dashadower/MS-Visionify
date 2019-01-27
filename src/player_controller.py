@@ -540,8 +540,8 @@ class PlayerController:
         elif selection == 2:
             self.shield_chase()
 
-    def random_duration(self, variance=0.05, step=0.01):
-        d = random.randrange(0, variance+step, step=step)
+    def random_duration(self, variance=0.05, digits=2):
+        d = round(random.uniform(0, variance), digits)
         if random.choice([1,-1]) == -1:
             d *= -1
         return d
