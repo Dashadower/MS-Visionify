@@ -253,7 +253,9 @@ class PathAnalyzer:
             if converted_tuple not in self.visited_coordinates:
                 self.current_oneway_coords.append(converted_tuple)
 
-    def flush_input_coords_to_platform(self):
+    def flush_input_coords_to_platform(self, coord_list=None):
+        if coord_list:
+            self.current_platform_coords = coord_list
         if self.current_platform_coords:
             platform_start = min(self.current_platform_coords, key=lambda x: x[0])
             platform_end = max(self.current_platform_coords, key=lambda x: x[0])
@@ -262,6 +264,18 @@ class PathAnalyzer:
             self.platforms[d_hash] = Platform(platform_start[0], platform_start[1], platform_end[0], platform_end[1], 0,
                                               [], d_hash)
             self.current_platform_coords = []
+
+    def flush_input_coords_to_oneway(self, coord_list=None):
+        if coord_list:
+            self.current_oneway_coords = coord_list
+        if self.current_oneway_coords:
+            platform_start = min(self.current_oneway_coords, key=lambda x: x[0])
+            platform_end = max(self.current_oneway_coords, key=lambda x: x[0])
+
+            d_hash = self.hash(str(platform_start))
+            self.oneway_platforms[d_hash] = Platform(platform_start[0], platform_start[1], platform_end[0], platform_end[1], 0,
+                                              [], d_hash)
+            self.current_oneway_coords_coords = []
 
     def input(self, inp_x, inp_y):
         """Use player minimap coordinates to determine start and end of platforms

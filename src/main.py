@@ -32,40 +32,6 @@ def destroy_child_widgets(parent):
     for child in parent.winfo_children():
         child.destroy()
 
-class CreatePlatformFileFrame(tk.Toplevel):
-    def __init__(self, master):
-        tk.Toplevel.__init__(self, master)
-        self.wm_minsize(200, 30)
-        self.master = master
-        self.focus_get()
-        self.grab_set()
-        self.title("데이터파일 생성기")
-        self.file_name = tk.StringVar()
-        tk.Label(self, text="맵 지형 데이터파일 생성 툴").grid(row=0, column=0)
-        tk.Button(self, text="파일 저장 경로 지정", command=self.set_file_name).grid(row=1, column=0)
-        tk.Button(self, text="생성툴 실행하기", command=self.onLaunch).grid(row=2, column=0)
-        tk.Label(self, text="사용법은 매뉴얼을 참고해주세요.").grid(row=3, column=0)
-        tk.Label(self, text="생성툴은 q를 눌러야 종료됩니다.").grid(row=4, column=0)
-
-        if not MapleScreenCapturer().ms_get_screen_hwnd():
-            showwarning("데이터파일 생성기", "메이플 창을 찾지 못했습니다. 메이플을 실행해 주세요")
-            self.destroy()
-
-    def onLaunch(self):
-        if not self.file_name.get():
-            showwarning("데이터파일 생성기", "파일 이름을 입력해주세요")
-        else:
-            cap = MapleScreenCapturer()
-            cap.capture()
-            map_creator_process = multiprocessing.Process(target=create_platform_file, args=(self.file_name.get(),))
-            map_creator_process.daemon = True
-            map_creator_process.start()
-
-    def set_file_name(self):
-        fdir = asksaveasfilename(initialdir=os.getcwd(), title="저장경로 설정", filetypes=(("지형 파일(*.platform)","*.platform"),))
-        if fdir:
-            self.file_name.set(fdir)
-
 class SetKeyMap(tk.Toplevel):
     def __init__(self, master):
         tk.Toplevel.__init__(self, master)

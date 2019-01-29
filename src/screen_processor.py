@@ -54,7 +54,7 @@ class MapleScreenCapturer:
         """Returns Maplestory window screenshot handle(not np.array!)
         :param set_focus : True if MapleStory window is to be focusesd before capture, False if not
         :param hwnd : Default: None Win32API screen handle to use. If None, sets and uses self.hwnd
-        :param hwnd : If defined, captures specificed ScreenRect area. Else, uses MS window ms_screen_rect.
+        :param rect : If defined, captures specificed ScreenRect area (x1, y1, x2, y2). Else, uses MS window ms_screen_rect.
         :return : returns Imagegrab of screen (PIL Image)"""
         if hwnd:
             self.hwnd = hwnd
@@ -66,7 +66,7 @@ class MapleScreenCapturer:
             win32gui.SetForegroundWindow(self.hwnd)
             time.sleep(0.1)
         img = ImageGrab.grab(rect)
-
+        img.save("res.bmp")
         return img
 
     def screen_capture(self,w, h, x=0, y=0, save=True, save_name=''):
