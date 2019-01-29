@@ -147,7 +147,8 @@ def macro_loop(input_queue, output_queue):
                                 macro.abort()
                                 break
     except:
-        output_queue.put(["log", "!! 매크로 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!"])
+        output_queue.put(["log", "!! 매크로 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!", ])
+        output_queue.put(["exception", "exception"])
         logger.exception("Exeption during loop execution:")
 
 
@@ -230,21 +231,35 @@ class MainScreen(tk.Frame):
                 self.log("Process - "+str(output[1]))
             elif output[0] == "stopped":
                 self.log("매크로가 완전히 종료되었습니다.")
+            elif output[0] == "exception":
+                self.macro_end_button.configure(state=DISABLED)
+                self.macro_start_button.configure(state=NORMAL)
+                self.platform_file_button.configure(state=NORMAL)
+                self.macro_process = None
+                self.macro_pid = 0
+                self.macro_process_toggle_button.configure(state=NORMAL)
+                self.macro_pid_infotext.set("실행되지 않음")
+                self.macro_process_label.configure(fg="red")
+                self.macro_process_toggle_button.configure(text="실행하기")
+                self.log("오류로 인해 매크로 프로세스가 종료되었습니다.")
+
         self.after(1000, self.check_input_queue)
 
     def check_license(self):
         self.log("인증 확인중...")
         auth_result = authentication.authenticate_device()
-        if auth_result[2] == 2:
+        if auth_result[0] == 2:
             self.log("인증 확인완료")
             self.after(600000, self.check_license)
         else:
+            self.log("인증 실패")
             showerror(APP_TITLE, "인증에 실패했습니다. 인증상태를 확인하고 다시 실행해주세요.")
             self.onClose()
 
     def onClose(self):
         if self.macro_process:
             try:
+                self.macro_process_out_queue.put("stop")
                 os.kill(self.macro_pid, signal.SIGTERM)
             except:
                 pass

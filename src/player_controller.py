@@ -192,8 +192,9 @@ class PlayerController:
         start_x = self.x
         loc_delta = self.x - goal_x
         abs_loc_delta = abs(loc_delta)
+        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
         self.moonlight_slash()
-
+        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
         if loc_delta > 0:
             # left movement
             if no_attack_distance and no_attack_distance < abs_loc_delta:
@@ -220,6 +221,7 @@ class PlayerController:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         if abs(self.x - start_x) >= no_attack_distance:
+                            time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
                             self.moonlight_slash()
                             self.randomize_skill()
 
@@ -229,6 +231,7 @@ class PlayerController:
                         else:
                             self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         time.sleep(0.1)
+                        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
                         self.moonlight_slash()
                         self.randomize_skill()
 
@@ -256,7 +259,9 @@ class PlayerController:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         if abs(self.x - start_x) >= no_attack_distance:
+                            time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
                             self.moonlight_slash()
+                            time.sleep(round(random.uniform(0, random.uniform(0, 0.5)), 1))
                             self.randomize_skill()
 
                     else:
@@ -265,9 +270,9 @@ class PlayerController:
                         else:
                             self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         time.sleep(0.1)
-
-
+                        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
                         self.moonlight_slash()
+                        time.sleep(round(random.uniform(0, random.uniform(0, 0.5)), 1))
                         self.randomize_skill()
 
     def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
@@ -307,11 +312,11 @@ class PlayerController:
             else:
                 # Distance is quite big, so we glide
                 self.key_mgr._direct_press(DIK_RIGHT)
-                time.sleep(0.05)
+                time.sleep(abs(0.05+self.random_duration(gen_range=0.1)))
                 self.key_mgr._direct_press(self.jump_key)
-                time.sleep(0.15)
+                time.sleep(abs(0.15+self.random_duration(gen_range=0.15)))
                 self.key_mgr._direct_release(self.jump_key)
-                time.sleep(0.1)
+                time.sleep(abs(0.1+self.random_duration(gen_range=0.15)))
                 self.key_mgr._direct_press(self.jump_key)
                 while True:
                     if time.time() - start_time > time_limit:
@@ -321,6 +326,7 @@ class PlayerController:
                     if self.x >= goal_x - self.horizontal_goal_offset * 3:
                         break
                 self.key_mgr._direct_release(self.jump_key)
+                time.sleep(0.1 + self.random_duration(gen_range=0.1))
                 self.key_mgr._direct_release(DIK_RIGHT)
 
 
@@ -348,11 +354,11 @@ class PlayerController:
             else:
                 # Distance is quite big, so we glide
                 self.key_mgr._direct_press(DIK_LEFT)
-                time.sleep(0.05)
+                time.sleep(abs(0.05+self.random_duration(gen_range=0.1)))
                 self.key_mgr._direct_press(self.jump_key)
-                time.sleep(0.15)
+                time.sleep(abs(0.15+self.random_duration(gen_range=0.15)))
                 self.key_mgr._direct_release(self.jump_key)
-                time.sleep(0.1)
+                time.sleep(abs(0.1+self.random_duration(gen_range=0.15)))
                 self.key_mgr._direct_press(self.jump_key)
                 while True:
                     if time.time() - start_time > time_limit:
@@ -362,6 +368,7 @@ class PlayerController:
                     if self.x <= goal_x + self.horizontal_goal_offset * 3:
                         break
                 self.key_mgr._direct_release(self.jump_key)
+                time.sleep(0.1 + self.random_duration(gen_range=0.1))
                 self.key_mgr._direct_release(DIK_LEFT)
 
     def horizontal_move_goal(self, goal_x):
@@ -405,29 +412,29 @@ class PlayerController:
     def dbljump_max(self):
         """Warining: is a blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.1)
+        time.sleep(0.1 + self.random_duration(0.08))
         self.key_mgr._direct_release(self.jump_key)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.05)))
         self.key_mgr._direct_press(DIK_UP)
-        time.sleep(0.01)
+        time.sleep(abs(0.01 + self.random_duration(0.15)))
         self.key_mgr._direct_release(DIK_UP)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_UP)
-        time.sleep(0.01)
+        time.sleep(abs(0.01 + self.random_duration(0.15)))
         self.key_mgr._direct_release(DIK_UP)
 
     def dbljump_half(self):
         """Warining: is a blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.1)
+        time.sleep(0.1 + self.random_duration(0.1))
         self.key_mgr._direct_release(self.jump_key)
-        time.sleep(0.23)
+        time.sleep(0.23 + self.random_duration(0.1))
         self.key_mgr._direct_press(DIK_UP)
         time.sleep(0.01)
         self.key_mgr._direct_release(DIK_UP)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_UP)
-        time.sleep(0.01)
+        time.sleep(abs(0.01 + self.random_duration(0.15)))
         self.key_mgr._direct_release(DIK_UP)
 
     def jumpl(self):
@@ -442,15 +449,15 @@ class PlayerController:
     def jumpl_double(self):
         """Blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_LEFT)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_LEFT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_LEFT)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_LEFT)
 
     def jumpl_glide(self):
@@ -478,15 +485,15 @@ class PlayerController:
     def jumpr_double(self):
         """Blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.05)
+        time.sleep(abs(0.05+self.random_duration(0.1)))
         self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_RIGHT)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_RIGHT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_RIGHT)
-        time.sleep(0.05)
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_RIGHT)
 
     def jumpr_glide(self):
@@ -505,24 +512,23 @@ class PlayerController:
     def drop(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_DOWN)
-        time.sleep(0.1)
+        time.sleep(abs(0.1+self.random_duration(gen_range=1)))
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.1)
+        time.sleep(abs(0.1+self.random_duration(gen_range=1)))
         self.key_mgr._direct_release(DIK_DOWN)
+        time.sleep(abs(0.1+self.random_duration(gen_range=0.5)))
         self.key_mgr._direct_release(self.jump_key)
 
     def moonlight_slash(self):
-        count = random.randrange(1,3)
-        for c in range(count):
-            self.key_mgr.single_press(self.keymap["moonlight_slash"], additional_duration=self.random_duration())
+
+        self.key_mgr.single_press(self.keymap["moonlight_slash"], additional_duration=abs(self.random_duration()))
         self.overload_stack += 1
         time.sleep(self.moonlight_slash_delay)
 
     def thousand_sword(self):
         if time.time() - self.last_thousand_sword_time > self.thousand_sword_cooldown:
-            count = random.randrange(1, 3)
-            for c in range(count):
-                self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=self.random_duration())
+
+            self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=abs(self.random_duration()))
             self.last_thousand_sword_time = time.time()
             self.overload_stack += 5
             print("thousand sword cast")
@@ -534,7 +540,7 @@ class PlayerController:
             self.update()
             cast_yccords = self.y
             for c in range(count):
-                self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=self.random_duration())
+                self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=abs(self.random_duration(gen_range=0.2)))
             self.key_mgr.single_press(DIK_ALT)
             self.update()
             after_cast_ycoords = self.y
@@ -553,13 +559,13 @@ class PlayerController:
 
     def holy_symbol(self):
         if time.time() - self.last_holy_symbol_time > self.holy_symbol_cooldown + random.randint(0, 14):
-            self.key_mgr.single_press(self.keymap["holy_symbol"], additional_duration=self.random_duration())
+            self.key_mgr.single_press(self.keymap["holy_symbol"], additional_duration=abs(self.random_duration()))
             self.last_holy_symbol_time = time.time()
             time.sleep(self.holy_symbol_delay)
 
     def release_overload(self):
         if self.overload_stack >= 18 + random.randint(0, 12):
-            self.key_mgr.single_press(self.keymap["release_overload"],additional_duration=self.random_duration())
+            self.key_mgr.single_press(self.keymap["release_overload"],additional_duration=abs(self.random_duration()))
             self.overload_stack = 0
             time.sleep(0.2)
 
@@ -577,7 +583,7 @@ class PlayerController:
             else:
                 return 0
 
-    def random_duration(self, gen_range=0.05, digits=2):
+    def random_duration(self, gen_range=0.5, digits=2):
         """
         returns a random number x where -gen_range<=x<=gen_range rounded to digits number of digits under floating points
         :param gen_range: float for generating number x where -gen_range<=x<=gen_range

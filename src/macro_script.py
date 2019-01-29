@@ -119,7 +119,7 @@ class MacroController:
         :return: loop exit code
         """
         # Check if MapleStory window is alive
-
+        random.seed((time.time() * 10**4) % 10 **3)
         if not self.screen_capturer.ms_get_screen_hwnd():
             self.logger.debug("Failed to get MS screen rect")
             self.abort()

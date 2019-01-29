@@ -12,7 +12,6 @@ def authenticate_device():
     payload = {
         "uuid":get_diskdrive_hash()
     }
-
     try:
         request = requests.post(server, payload)
         data = request.json()
