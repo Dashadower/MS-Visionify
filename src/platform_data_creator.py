@@ -1,7 +1,62 @@
 # -*- coding:utf-8 -*-
 from screen_processor import StaticImageProcessor, MapleScreenCapturer
 from terrain_analyzer import PathAnalyzer
-import cv2, imutils, logging
+import cv2, imutils, logging, threading
+import tkinter as tk
+from tkinter.constants import *
+from PIL import Image, ImageTk
+from tkinter.messagebox import showinfo, showerror, showwarning
+from tkinter.filedialog import asksaveasfilename
+
+class PlatformDataCaptureWindow(tk.Toplevel):
+    def __init__(self):
+        tk.Toplevel.__init__(self)
+        self.wm_minsize(100, 30)
+        self.resizable(0,0)
+        self.focus_get()
+        self.grab_set()
+        self.title("데이터파일 생성기")
+
+        self.screen_capturer = MapleScreenCapturer()
+        self.image_processor = StaticImageProcessor(self.screen_capturer)
+        self.terrain_analyzer = PathAnalyzer()
+        self.image_label = tk.Label(self)
+        self.image_label.pack(expand=YES, fill=BOTH)
+
+        self.tool_frame = tk.Frame(self, borderwidth=2, relief=GROOVE)
+        self.tool_frame.pack(expand=YES, fill=BOTH)
+        self.image_processor.update_image(set_focus=False)
+        self.minimap_rect = self.image_processor.get_minimap_rect()
+        if not self.minimap_rect:
+            self.image_label.configure(text="미니맵 찾을수 없음", fg="red")
+
+        self.stopEvent = threading.Event()
+        self.input_
+        self.thread = threading.Thread(target=self.update_image, args=())
+        self.thread.start()
+
+    def update_image(self):
+        while not self.stopEvent.is_set():
+            self.image_processor.update_image(set_focus=False)
+            if not self.minimap_rect:
+
+                self.image_label.configure(text="미니맵 찾을수 없음", fg="red")
+                self.minimap_rect = self.image_processor.get_minimap_rect()
+                continue
+
+            playerpos = self.image_processor.find_player_minimap_marker(self.minimap_rect)
+            if not playerpos:
+                self.image_label.configure(text="플레이어 위치 찾을수 없음", fg="red")
+                continue
+
+            cropped_img = cv2.cvtColor(self.image_processor.bgr_img[self.minimap_rect[1]:self.minimap_rect[1] + self.minimap_rect[3], self.minimap_rect[0]:self.minimap_rect[0] + self.minimap_rect[2]], cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(cropped_img)
+            img_tk = ImageTk.PhotoImage(image=img)
+            self.image_label.image = img_tk
+            self.image_label.configure(image=img_tk)
+            self.update()
+
+
 
 def create_platform_file(file_name):
     default_logger = logging.getLogger("platform_file_creator")
@@ -65,3 +120,7 @@ def create_platform_file(file_name):
     except:
         default_logger.exception("exception if platform data creator")
 
+if __name__ == "__main__":
+    root = tk.Tk()
+    PlatformDataCaptureWindow()
+    root.mainloop()

@@ -95,6 +95,8 @@ class MapleScreenCapturer:
         if not save:
             return img
 
+    def pil_image_to_array(self, img):
+        return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 class StaticImageProcessor:
     def __init__(self, img_handle=None):

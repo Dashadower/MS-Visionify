@@ -153,6 +153,8 @@ class PathAnalyzer:
             visited_platform_hashes.append(current_solution.from_hash)
             if current_solution.to_hash == goal_hash:
                 calculated_paths.append(paths)
+                break
+
             try:
                 next_solution = self.platforms[current_solution.to_hash].solutions
             except KeyError:
@@ -164,9 +166,10 @@ class PathAnalyzer:
                     bfs_queue.append([solution, cv])
 
         if calculated_paths:
+            print(calculated_paths)
             return sorted(calculated_paths, key=lambda x: len(x))[0]
         else:
-            return calculated_paths
+            return 0
 
 
     def calculate_navigation_map(self):
@@ -249,6 +252,16 @@ class PathAnalyzer:
             self.current_oneway_coords = []
             if converted_tuple not in self.visited_coordinates:
                 self.current_oneway_coords.append(converted_tuple)
+
+    def flush_input_coords_to_platform(self):
+        if self.current_platform_coords:
+            platform_start = min(self.current_platform_coords, key=lambda x: x[0])
+            platform_end = max(self.current_platform_coords, key=lambda x: x[0])
+
+            d_hash = self.hash(str(platform_start))
+            self.platforms[d_hash] = Platform(platform_start[0], platform_start[1], platform_end[0], platform_end[1], 0,
+                                              [], d_hash)
+            self.current_platform_coords = []
 
     def input(self, inp_x, inp_y):
         """Use player minimap coordinates to determine start and end of platforms

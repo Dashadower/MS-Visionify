@@ -3,7 +3,7 @@ sys.path.append("../src")
 sys.path.append("C:\\Users\\tttll\\PycharmProjects\\MacroSTory")
 from terrain_analyzer import PathAnalyzer
 pathextractor = PathAnalyzer()
-pathextractor.load("C:\\Users\\tttll\PycharmProjects\\MacroSTory\\tests\\mapdata.platform")
+pathextractor.load("본색을 드러내는 곳 2.platform")
 print(__file__)
 print(pathextractor.platforms)
 pathextractor.calculate_navigation_map()

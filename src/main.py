@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-#import macro_script
 import logging
 default_logger = logging.getLogger("main")
 default_logger.setLevel(logging.DEBUG)
@@ -17,7 +16,7 @@ try:
     from tkinter.filedialog import askopenfilename, asksaveasfilename
     from tkinter.scrolledtext import ScrolledText
 
-    from platform_data_creator import create_platform_file
+    from platform_data_creator import PlatformDataCaptureWindow
     from screen_processor import MapleScreenCapturer
     from keystate_manager import DEFAULT_KEY_MAP
     from directinput_constants import keysym_map
@@ -162,25 +161,28 @@ def macro_loop(input_queue, output_queue):
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
-    while True:
-        if not input_queue.empty():
-            command = input_queue.get()
-            logger.debug("recieved command {}".format(command))
-            if command[0] == "start":
-                logger.debug("starting MacroController...")
-                keymap = command[1]
-                platform_file_dir = command[2]
-                macro = MacroController(keymap)
-                macro.load_and_process_platform_map(platform_file_dir)
+    try:
+        while True:
+            if not input_queue.empty():
+                command = input_queue.get()
+                logger.debug("recieved command {}".format(command))
+                if command[0] == "start":
+                    logger.debug("starting MacroController...")
+                    keymap = command[1]
+                    platform_file_dir = command[2]
+                    macro = MacroController(keymap, log_queue=output_queue)
+                    macro.load_and_process_platform_map(platform_file_dir)
 
-                while True:
-                    macro.loop()
-                    if not input_queue.empty():
-                        command = input_queue.get()
-                        if command[0] == "stop":
-                            logger.debug("recieved command stop")
-                            macro.abort()
-                            break
+                    while True:
+                        macro.loop()
+                        if not input_queue.empty():
+                            command = input_queue.get()
+                            if command[0] == "stop":
+                                macro.abort()
+                                break
+    except:
+        output_queue.put(["log", "!! 매크로 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!"])
+        logger.exception("Exeption during loop execution:")
 
 
 
@@ -195,7 +197,7 @@ class MainScreen(tk.Frame):
         self.expiration_time = expiration_time
 
         self.menubar = tk.Menu()
-        self.menubar.add_command(label="지형파일 생성하기", command=lambda: CreatePlatformFileFrame(self.master))
+        self.menubar.add_command(label="지형파일 생성하기", command=lambda: PlatformDataCaptureWindow())
         self.menubar.add_command(label="키 설정하기", command=lambda: SetKeyMap(self.master))
 
         self.master.config(menu=self.menubar)
@@ -243,14 +245,36 @@ class MainScreen(tk.Frame):
         self.macro_end_button = tk.Button(self.macro_info_frame, text="매크로 종료", fg="red", command=self.stop_macro, state=DISABLED)
         self.macro_end_button.grid(row=2, column=1, sticky=N + S + E + W)
 
+
+
         for x in range(5):
             self.macro_info_frame.grid_columnconfigure(x, weight=1)
         self.log("MS-rbw", VERSION)
         self.log("해당 프로그램 사용시 발생하는 모든 제재사항 및 불이익은 사용자에게 있습니다")
 
         self.master.protocol("WM_DELETE_WINDOW", self.onClose)
-
+        self.after(600000, self.check_license)
         self.after(500, self.toggle_macro_process)
+        self.after(1000, self.check_input_queue)
+
+    def check_input_queue(self):
+        while not self.macro_process_in_queue.empty():
+            output = self.macro_process_in_queue.get()
+            if output[0] == "log":
+                self.log("Process - "+str(output[1]))
+            elif output[0] == "stopped":
+                self.log("매크로가 완전히 종료되었습니다.")
+        self.after(1000, self.check_input_queue)
+
+    def check_license(self):
+        self.log("인증 확인중...")
+        auth_result = authentication.authenticate_device()
+        if auth_result[2] == 2:
+            self.log("인증 확인완료")
+            self.after(600000, self.check_license)
+        else:
+            showerror(APP_TITLE, "인증에 실패했습니다. 인증상태를 확인하고 다시 실행해주세요.")
+            self.onClose()
 
     def onClose(self):
         if self.macro_process:
@@ -315,6 +339,7 @@ class MainScreen(tk.Frame):
         for arg in args:
             res_txt.append(str(arg))
         self.log_text_area.insert(END, " ".join(res_txt)+"\n")
+        self.log_text_area.see(END)
 
     def toggle_macro_process(self):
         if not self.macro_process:

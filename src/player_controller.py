@@ -74,7 +74,7 @@ class PlayerController:
 
         # Initialization code for self.randomize_skill
         self.thousand_sword_percent = 30
-        self.shield_chase_percent = 30
+        self.shield_chase_percent = 40
         self.choices = []
 
         for obj in range(self.thousand_sword_percent):
@@ -164,8 +164,6 @@ class PlayerController:
             print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
             self.horizontal_move_goal(minimum_jmp_x)
 
-
-
     def linear_glide(self, x, jmp_x, jmp_y, jmp_height, slope):
         """
         Calculates glide y coordinate at x coordinate x with input constants
@@ -180,7 +178,7 @@ class PlayerController:
         y = slope * x + b
         return y
 
-    def moonlight_slash_sweep_move(self, goal_x, glide=True):
+    def moonlight_slash_sweep_move(self, goal_x, glide=True, no_attack_distance=0):
         """
         This function will, while moving towards goal_x, constantly use exceed: moonlight slash and not overlapping
         This function currently does not have an time enforce implementation, meaning it may fall into an infinite loop
@@ -188,14 +186,22 @@ class PlayerController:
         X coordinate max error on flat surface: +- 5 pixels
         :param goal_x: minimap x goal coordinate.
         :param glide: If True, will used optimized_horizontal_move. Else, will use horizontal_move_goal
+        :param no_attack_distance: Distance in x pixels where any attack skill would not be used and just move
         :return: None
         """
+        start_x = self.x
         loc_delta = self.x - goal_x
         abs_loc_delta = abs(loc_delta)
         self.moonlight_slash()
-        #time.sleep(0.5)
+
         if loc_delta > 0:
             # left movement
+            if no_attack_distance and no_attack_distance < abs_loc_delta:
+                self.optimized_horizontal_move(self.x-no_attack_distance+self.horizontal_goal_offset)
+
+            self.update()
+            loc_delta = self.x - goal_x
+            abs_loc_delta = abs(loc_delta)
             if abs_loc_delta < self.moonlight_slash_x_radius:
                 self.horizontal_move_goal(goal_x)
 
@@ -207,25 +213,32 @@ class PlayerController:
                         break
 
                     elif abs(self.x - goal_x) < self.moonlight_slash_x_radius * 2:
+                        #  Movement distance is too short to effectively glide. So just wak
                         if glide:
                             self.optimized_horizontal_move(goal_x)
                         else:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
-                        self.moonlight_slash()
-                        self.randomize_skill()
+                        if abs(self.x - start_x) >= no_attack_distance:
+                            self.moonlight_slash()
+                            self.randomize_skill()
 
                     else:
                         if glide:
-                            self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2)
+                            self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         else:
-                            self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2)
+                            self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         time.sleep(0.1)
                         self.moonlight_slash()
                         self.randomize_skill()
 
         elif loc_delta < 0:
             # right movement
+            if no_attack_distance and no_attack_distance < abs_loc_delta:
+                self.optimized_horizontal_move(self.x+no_attack_distance-self.horizontal_goal_offset)
+            self.update()
+            loc_delta = self.x - goal_x
+            abs_loc_delta = abs(loc_delta)
             if abs_loc_delta < self.moonlight_slash_x_radius:
                 self.horizontal_move_goal(goal_x)
 
@@ -242,15 +255,17 @@ class PlayerController:
                         else:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
-                        self.moonlight_slash()
-                        self.randomize_skill()
+                        if abs(self.x - start_x) >= no_attack_distance:
+                            self.moonlight_slash()
+                            self.randomize_skill()
 
                     else:
                         if glide:
-                            self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2)
+                            self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         else:
-                            self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2)
+                            self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
                         time.sleep(0.1)
+
 
                         self.moonlight_slash()
                         self.randomize_skill()
@@ -510,15 +525,31 @@ class PlayerController:
                 self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=self.random_duration())
             self.last_thousand_sword_time = time.time()
             self.overload_stack += 5
+            print("thousand sword cast")
             time.sleep(self.thousand_sword_delay)
 
     def shield_chase(self):
         if time.time() - self.last_shield_chase_time > self.shield_chase_cooldown:
             count = random.randrange(1, 3)
+            self.update()
+            cast_yccords = self.y
             for c in range(count):
                 self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=self.random_duration())
-            self.last_shield_chase_time = time.time()
-            time.sleep(self.shield_chase_delay)
+            self.key_mgr.single_press(DIK_ALT)
+            self.update()
+            after_cast_ycoords = self.y
+            print("shield chase cast")
+            if cast_yccords == after_cast_ycoords:
+                #  Shield chase has been used.
+                self.last_shield_chase_time = time.time()
+                time.sleep(self.shield_chase_delay - 0.2)
+                print("shield chase cast - actually casted")
+                return 0
+            else:
+                # No monsters nearby, was not used
+                print("shield chase cast - not casted")
+                time.sleep(1)
+                return 1
 
     def holy_symbol(self):
         if time.time() - self.last_holy_symbol_time > self.holy_symbol_cooldown + random.randint(0, 14):
@@ -530,6 +561,7 @@ class PlayerController:
         if self.overload_stack >= 18 + random.randint(0, 12):
             self.key_mgr.single_press(self.keymap["release_overload"],additional_duration=self.random_duration())
             self.overload_stack = 0
+            time.sleep(0.2)
 
     def randomize_skill(self):
         selection = random.choice(self.choices)
@@ -537,11 +569,22 @@ class PlayerController:
             return 0
         elif selection == 1:
             self.thousand_sword()
+            return 0
         elif selection == 2:
-            self.shield_chase()
+            retval = self.shield_chase()
+            if retval == 0:
+                return 2
+            else:
+                return 0
 
-    def random_duration(self, variance=0.05, digits=2):
-        d = round(random.uniform(0, variance), digits)
+    def random_duration(self, gen_range=0.05, digits=2):
+        """
+        returns a random number x where -gen_range<=x<=gen_range rounded to digits number of digits under floating points
+        :param gen_range: float for generating number x where -gen_range<=x<=gen_range
+        :param digits: n digits under floating point to round. 0 returns integer as float type
+        :return: random number float
+        """
+        d = round(random.uniform(0, gen_range), digits)
         if random.choice([1,-1]) == -1:
             d *= -1
         return d
