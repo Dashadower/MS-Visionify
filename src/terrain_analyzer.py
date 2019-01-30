@@ -69,15 +69,18 @@ class PathAnalyzer:
         self.last_y = None
         self.movement = None
 
-        self.determination_accuracy = 0  # Offset to determine y coord accuracy NOT USED
-        self.platform_variance = 3
+        self.platform_variance = 3  # If current pixel isn't in any pixel, if current x pixel within +- variance, include in platform
         self.ladder_variance = 2
         self.minimum_platform_length = 10  # Minimum x length of coordinates to be logged as a platform by input()
         self.minimum_ladder_length = 5  # Minimum y length of coordinated to be logged as a ladder by input()
 
+        # below constants are used for generating solution graphs
         self.dbljump_max_height = 31  # total absolute jump height is about 31, but take account platform size
         self.jump_range = 16  # horizontal jump distance is about 9~10 EDIT:now using glide jump which has more range
-        self.dbljump_half_height = 20  # absolute jump height of a half jump. Used for generating navigation map
+        self.dbljump_half_height = 20  # absolute jump height of a half jump. Used for generating solution graph
+
+        # below constants are used for path related algorithms.
+        self.subplatform_length = 2  # length of subdivided platform
 
     def save(self, filename="mapdata.platform", minimap_roi = None):
         """Save platforms, oneway_platforms, ladders, minimap_roi to a file
@@ -172,8 +175,8 @@ class PathAnalyzer:
             return 0
 
 
-    def calculate_navigation_map(self):
-        """Generates a navigation map, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
+    def generate_solution_dict(self):
+        """Generates a solution dictionary, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
         for key, platform in self.platforms.items():
             platform.last_visit = 0
             self.calculate_interplatform_solutions(key)
@@ -387,7 +390,11 @@ class PathAnalyzer:
                         solution = Solution(platform.hash, key, (platform.end_x, platform.end_y), (platform.end_x, platform.end_y), METHOD_JUMPR, False)
                         platform.solutions.append(solution)
 
-
+    def subdivide(self):
+        """
+        Subdivides each platform in self.platforms into subplatforms having length of self.subplatform_length
+        :return:
+        """
 
     def reset(self):
         """

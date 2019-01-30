@@ -129,6 +129,7 @@ def macro_loop(input_queue, output_queue):
     logger.addHandler(fh)
     try:
         while True:
+            time.sleep(0.5)
             if not input_queue.empty():
                 command = input_queue.get()
                 logger.debug("recieved command {}".format(command))

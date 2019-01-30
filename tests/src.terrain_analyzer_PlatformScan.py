@@ -6,7 +6,7 @@ pathextractor = PathAnalyzer()
 pathextractor.load("본색을 드러내는 곳 2.platform")
 print(__file__)
 print(pathextractor.platforms)
-pathextractor.calculate_navigation_map()
+pathextractor.generate_solution_dict()
 for key, val in pathextractor.platforms.items():
     print(key)
     print(val.solutions)

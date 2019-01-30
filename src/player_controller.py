@@ -55,13 +55,21 @@ class PlayerController:
         self.moonlight_slash_delay = 1.0 * 0.45  # delay after using MS where character is not movable
 
         self.horizontal_movement_threshold = 21 # Glide instead of walk if distance greater than threshold
+
+        self.skill_cast_counter = 0
+        self.skill_counter_time = 0
+
         self.last_shield_chase_time = 0
         self.shield_chase_cooldown = 6
         self.shield_chase_delay = 1.0  # delay after using SC where character is not movable
+        self.last_shield_chase_coords = None
+        self.min_shield_chase_distance = 20
 
         self.last_thousand_sword_time = 0
         self.thousand_sword_cooldown = 8 + 2
         self.thousand_sword_delay = 1.6  # delay after using thousand sword where character is not movable
+        self.last_thousand_sword_coords = None
+        self.min_thousand_sword_distance = 25
 
         self.rune_cooldown = 60 * 15  # 15 minutes for rune cooldown
         self.last_rune_solve_time = 0
@@ -178,6 +186,9 @@ class PlayerController:
         y = slope * x + b
         return y
 
+    def distance(self, coord1, coord2):
+        return math.sqrt((coord1[0]-coord2[0])**2 + (coord1[1]-coord2[1])**2)
+
     def moonlight_slash_sweep_move(self, goal_x, glide=True, no_attack_distance=0):
         """
         This function will, while moving towards goal_x, constantly use exceed: moonlight slash and not overlapping
@@ -192,9 +203,11 @@ class PlayerController:
         start_x = self.x
         loc_delta = self.x - goal_x
         abs_loc_delta = abs(loc_delta)
-        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
-        self.moonlight_slash()
-        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
+
+        time.sleep(abs(self.random_duration()))
+        if not no_attack_distance:
+            self.moonlight_slash()
+            time.sleep(abs(self.random_duration()))
         if loc_delta > 0:
             # left movement
             if no_attack_distance and no_attack_distance < abs_loc_delta:
@@ -221,19 +234,23 @@ class PlayerController:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         if abs(self.x - start_x) >= no_attack_distance:
-                            time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
+                            time.sleep(abs(self.random_duration()))
                             self.moonlight_slash()
+                            time.sleep(abs(self.random_duration()))
                             self.randomize_skill()
+                        time.sleep(abs(self.random_duration(0.7)))
 
                     else:
                         if glide:
-                            self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
+                            self.optimized_horizontal_move(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(2, 0))
                         else:
-                            self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
+                            self.horizontal_move_goal(self.x - self.moonlight_slash_x_radius * 2 + self.random_duration(2, 0))
                         time.sleep(0.1)
-                        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
+                        time.sleep(abs(self.random_duration()))
                         self.moonlight_slash()
+                        time.sleep(abs(self.random_duration()))
                         self.randomize_skill()
+                        time.sleep(abs(self.random_duration(0.7)))
 
         elif loc_delta < 0:
             # right movement
@@ -259,21 +276,22 @@ class PlayerController:
                             self.horizontal_move_goal(goal_x)
                         time.sleep(0.1)
                         if abs(self.x - start_x) >= no_attack_distance:
-                            time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
+                            time.sleep(abs(self.random_duration()))
                             self.moonlight_slash()
-                            time.sleep(round(random.uniform(0, random.uniform(0, 0.5)), 1))
+                            time.sleep(abs(self.random_duration()))
                             self.randomize_skill()
-
+                            time.sleep(abs(self.random_duration(0.7)))
                     else:
                         if glide:
-                            self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
+                            self.optimized_horizontal_move(self.x + self.moonlight_slash_x_radius * 2 - abs(self.random_duration(2, 0)))
                         else:
-                            self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2 + self.random_duration(3, 0))
+                            self.horizontal_move_goal(self.x + self.moonlight_slash_x_radius * 2 - abs(self.random_duration(2, 0)))
                         time.sleep(0.1)
-                        time.sleep(round(random.uniform(0, random.uniform(0, 1)), 1))
+                        time.sleep(abs(self.random_duration()))
                         self.moonlight_slash()
-                        time.sleep(round(random.uniform(0, random.uniform(0, 0.5)), 1))
+                        time.sleep(abs(self.random_duration()))
                         self.randomize_skill()
+                        time.sleep(abs(self.random_duration(0.7)))
 
     def optimized_horizontal_move(self, goal_x, ledge=False, enforce_time=True):
         """
@@ -412,15 +430,15 @@ class PlayerController:
     def dbljump_max(self):
         """Warining: is a blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(0.1 + self.random_duration(0.08))
+        time.sleep(0.1 + self.random_duration(0.1))
         self.key_mgr._direct_release(self.jump_key)
-        time.sleep(abs(0.05 + self.random_duration(0.05)))
+        time.sleep(abs(0.05 + self.random_duration(0.1)))
         self.key_mgr._direct_press(DIK_UP)
-        time.sleep(abs(0.01 + self.random_duration(0.15)))
+        time.sleep(abs(0.01 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_UP)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_UP)
-        time.sleep(abs(0.01 + self.random_duration(0.15)))
+        time.sleep(abs(0.01 + self.random_duration(0.1)))
         self.key_mgr._direct_release(DIK_UP)
 
     def dbljump_half(self):
@@ -449,15 +467,15 @@ class PlayerController:
     def jumpl_double(self):
         """Blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(abs(0.05 + self.random_duration(0.1)))
+        time.sleep(abs(0.05 + self.random_duration(0.2)))
         self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_LEFT)
-        time.sleep(abs(0.05 + self.random_duration(0.1)))
+        time.sleep(abs(0.05 + self.random_duration(0.2)))
         self.key_mgr._direct_release(DIK_LEFT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_LEFT)
-        time.sleep(abs(0.05 + self.random_duration(0.1)))
+        time.sleep(abs(0.05 + self.random_duration(0.2)))
         self.key_mgr._direct_release(DIK_LEFT)
 
     def jumpl_glide(self):
@@ -485,15 +503,15 @@ class PlayerController:
     def jumpr_double(self):
         """Blocking call"""
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(abs(0.05+self.random_duration(0.1)))
+        time.sleep(abs(0.05+self.random_duration(0.2)))
         self.key_mgr._direct_release(self.jump_key)
         time.sleep(0.1)
         self.key_mgr._direct_press(DIK_RIGHT)
-        time.sleep(abs(0.05 + self.random_duration(0.1)))
+        time.sleep(abs(0.05 + self.random_duration(0.2)))
         self.key_mgr._direct_release(DIK_RIGHT)
         time.sleep(0.05)
         self.key_mgr._direct_press(DIK_RIGHT)
-        time.sleep(abs(0.05 + self.random_duration(0.1)))
+        time.sleep(abs(0.05 + self.random_duration(0.2)))
         self.key_mgr._direct_release(DIK_RIGHT)
 
     def jumpr_glide(self):
@@ -512,60 +530,71 @@ class PlayerController:
     def drop(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_DOWN)
-        time.sleep(abs(0.1+self.random_duration(gen_range=1)))
+        time.sleep(abs(0.1+self.random_duration()))
         self.key_mgr._direct_press(self.jump_key)
-        time.sleep(abs(0.1+self.random_duration(gen_range=1)))
+        time.sleep(abs(0.1+self.random_duration()))
         self.key_mgr._direct_release(DIK_DOWN)
-        time.sleep(abs(0.1+self.random_duration(gen_range=0.5)))
+        time.sleep(abs(0.1+self.random_duration()))
         self.key_mgr._direct_release(self.jump_key)
 
     def moonlight_slash(self):
 
-        self.key_mgr.single_press(self.keymap["moonlight_slash"], additional_duration=abs(self.random_duration()))
+        self.key_mgr.single_press(self.keymap["moonlight_slash"], additional_duration=abs(self.random_duration(0.2)))
         self.overload_stack += 1
+        self.skill_cast_counter += 1
         time.sleep(self.moonlight_slash_delay)
 
     def thousand_sword(self):
         if time.time() - self.last_thousand_sword_time > self.thousand_sword_cooldown:
-
-            self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=abs(self.random_duration()))
-            self.last_thousand_sword_time = time.time()
-            self.overload_stack += 5
-            print("thousand sword cast")
-            time.sleep(self.thousand_sword_delay)
+            self.update()
+            if self.distance((self.x, self.y), self.last_thousand_sword_coords if self.last_thousand_sword_coords else (1000,1000)) >= self.min_thousand_sword_distance or \
+                    time.time() - self.last_thousand_sword_time > self.thousand_sword_cooldown*3:
+                self.key_mgr.single_press(self.keymap["thousand_sword"], additional_duration=abs(self.random_duration()))
+                self.last_thousand_sword_time = time.time()
+                self.skill_cast_counter += 1
+                self.last_thousand_sword_coords = (self.x, self.y)
+                self.overload_stack += 5
+                print("thousand sword cast")
+                time.sleep(self.thousand_sword_delay)
 
     def shield_chase(self):
         if time.time() - self.last_shield_chase_time > self.shield_chase_cooldown:
-            count = random.randrange(1, 3)
-            self.update()
-            cast_yccords = self.y
-            for c in range(count):
-                self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=abs(self.random_duration(gen_range=0.2)))
-            self.key_mgr.single_press(DIK_ALT)
-            self.update()
-            after_cast_ycoords = self.y
-            print("shield chase cast")
-            if cast_yccords == after_cast_ycoords:
-                #  Shield chase has been used.
-                self.last_shield_chase_time = time.time()
-                time.sleep(self.shield_chase_delay - 0.2)
-                print("shield chase cast - actually casted")
-                return 0
-            else:
-                # No monsters nearby, was not used
-                print("shield chase cast - not casted")
-                time.sleep(1)
-                return 1
+            if self.distance((self.x, self.y), self.last_shield_chase_coords if self.last_shield_chase_coords else (1000,1000)) >= self.min_shield_chase_distance or \
+                    time.time() - self.last_shield_chase_time > self.shield_chase_cooldown*3:
+                count = random.randrange(1, 3)
+                self.update()
+                cast_yccords = self.y
+                for c in range(count):
+                    self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=abs(self.random_duration(gen_range=0.2)))
+                self.key_mgr.single_press(DIK_ALT)
+                self.update()
+                after_cast_ycoords = self.y
+                print("shield chase cast")
+                if cast_yccords == after_cast_ycoords:
+                    #  Shield chase has been used.
+                    self.last_shield_chase_time = time.time()
+                    self.last_shield_chase_coords = (self.x, self.y)
+                    self.skill_cast_counter += 1
+                    time.sleep(self.shield_chase_delay - 0.2)
+                    print("shield chase cast - actually casted")
+                    return 0
+                else:
+                    # No monsters nearby, was not used
+                    print("shield chase cast - not casted")
+                    time.sleep(1)
+                    return 1
 
     def holy_symbol(self):
         if time.time() - self.last_holy_symbol_time > self.holy_symbol_cooldown + random.randint(0, 14):
             self.key_mgr.single_press(self.keymap["holy_symbol"], additional_duration=abs(self.random_duration()))
+            self.skill_cast_counter += 1
             self.last_holy_symbol_time = time.time()
             time.sleep(self.holy_symbol_delay)
 
     def release_overload(self):
         if self.overload_stack >= 18 + random.randint(0, 12):
             self.key_mgr.single_press(self.keymap["release_overload"],additional_duration=abs(self.random_duration()))
+            self.skill_cast_counter += 1
             self.overload_stack = 0
             time.sleep(0.2)
 

@@ -57,8 +57,8 @@ class MacroController:
         self.reset_navmap_loop_count = 10  # every x times reset navigation map, scrambling pathing
         self.navmap_reset_type = 1  # navigation map reset type. 1 for random, -1 for just reset. GETS ALTERNATED
 
-        self.walk_probability = 5
-        # This sets random.randint(0, walk_probability) to decide of moonlight slash should just walk instead of glide
+        self.walk_probability = 3
+        # This sets random.randint(1, walk_probability) to decide of moonlight slash should just walk instead of glide
         # Probability of walking is (1/walk_probability) * 100
 
         self.platform_fail_loops = 0
@@ -70,7 +70,7 @@ class MacroController:
         self.logger.debug("MacroController init finished")
     def load_and_process_platform_map(self, path):
         self.terrain_analyzer.load(path)
-        self.terrain_analyzer.calculate_navigation_map()
+        self.terrain_analyzer.generate_solution_dict()
         self.logger.debug("Loaded platform data %s"%(path))
 
     def distance(self, x1, y1, x2, y2):
@@ -120,6 +120,17 @@ class MacroController:
         """
         # Check if MapleStory window is alive
         random.seed((time.time() * 10**4) % 10 **3)
+        if random.randint(1, 5) == 2:
+            restrict_moonlight_slash = True
+        else:
+            restrict_moonlight_slash = False
+        if not self.player_manager.skill_counter_time:
+            self.player_manager.skill_counter_time = time.time()
+        if time.time() - self.player_manager.skill_counter_time > 60:
+            print("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
+            self.logger.debug("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
+            self.player_manager.skill_cast_counter = 0
+            self.player_manager.skill_counter_time = time.time()
         if not self.screen_capturer.ms_get_screen_hwnd():
             self.logger.debug("Failed to get MS screen rect")
             self.abort()
@@ -165,7 +176,7 @@ class MacroController:
 
         if self.loop_count % self.reset_navmap_loop_count == 0 and self.loop_count != 0:
             # Reset navigation map to randomize pathing
-            self.terrain_analyzer.calculate_navigation_map()
+            self.terrain_analyzer.generate_solution_dict()
             numbers = []
             for x in range(0, len(self.terrain_analyzer.platforms.keys())):
                 numbers.append(x)
@@ -202,37 +213,37 @@ class MacroController:
 
                 if rune_platform_hash:
                     self.logger.debug("rune on platform %s"%(rune_platform_hash))
-                    rune_solutions = self.terrain_analyzer.pathfind(self.current_platform_hash, rune_platform_hash)
+                    if self.current_platform_hash != rune_platform_hash:
+                        rune_solutions = self.terrain_analyzer.pathfind(self.current_platform_hash, rune_platform_hash)
+                        if rune_solutions:
+                            self.logger.debug("paths to rune: %s" % (" ".join(x.method for x in rune_solutions)))
+                            print(" ".join(x.method for x in rune_solutions))
+                            for solution in rune_solutions:
+                                if self.player_manager.x < solution.lower_bound[0]:
+                                    # We are left of solution bounds.
+                                    self.player_manager.horizontal_move_goal(solution.lower_bound[0])
+                                else:
+                                    # We are right of solution bounds
+                                    self.player_manager.horizontal_move_goal(solution.upper_bound[0])
+                                time.sleep(1)
+                                rune_movement_type = solution.method
+                                if rune_movement_type == ta.METHOD_DROP:
+                                    self.player_manager.drop()
+                                    time.sleep(1)
+                                elif rune_movement_type == ta.METHOD_JUMPL:
+                                    self.player_manager.jumpl_double()
+                                    time.sleep(0.5)
+                                elif rune_movement_type == ta.METHOD_JUMPR:
+                                    self.player_manager.jumpr_double()
+                                    time.sleep(0.5)
+                                elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
+                                    self.player_manager.dbljump_max()
+                                    time.sleep(1)
+                                elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
+                                    self.player_manager.dbljump_half()
+                                    time.sleep(1)
 
-                    if rune_solutions:
-                        self.logger.debug("paths to rune: %s" % (" ".join(x.method for x in rune_solutions)))
-                        print(" ".join(x.method for x in rune_solutions))
-                        for solution in rune_solutions:
-                            if self.player_manager.x < solution.lower_bound[0]:
-                                # We are left of solution bounds.
-                                self.player_manager.horizontal_move_goal(solution.lower_bound[0])
-                            else:
-                                # We are right of solution bounds
-                                self.player_manager.horizontal_move_goal(solution.upper_bound[0])
-                            time.sleep(1)
-                            rune_movement_type = solution.method
-                            if rune_movement_type == ta.METHOD_DROP:
-                                self.player_manager.drop()
-                                time.sleep(1)
-                            elif rune_movement_type == ta.METHOD_JUMPL:
-                                self.player_manager.jumpl_double()
-                                time.sleep(0.5)
-                            elif rune_movement_type == ta.METHOD_JUMPR:
-                                self.player_manager.jumpr_double()
-                                time.sleep(0.5)
-                            elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
-                                self.player_manager.dbljump_max()
-                                time.sleep(1)
-                            elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
-                                self.player_manager.dbljump_half()
-                                time.sleep(1)
-
-                        time.sleep(0.5)
+                            time.sleep(0.5)
 
                     self.player_manager.update()
                     if self.player_manager.x < rune_coords[0]-1 or self.player_manager.x > rune_coords[0]+1:
@@ -249,7 +260,9 @@ class MacroController:
                             self.keyhandler.single_press(dc.DIK_LEFT)
 
                     self.player_manager.last_rune_solve_time = time.time()
+                    self.current_platform_hash = rune_platform_hash
                     time.sleep(1)
+
 
         # End Placeholder
 
@@ -300,31 +313,39 @@ class MacroController:
                 in_solution_movement_goal = lookahead_ub
             else:
                 in_solution_movement_goal = lookahead_lb
-
-            if random.randint(0, self.walk_probability) == 1:
-                self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2)
+            if restrict_moonlight_slash:
+                self.player_manager.optimized_horizontal_move(in_solution_movement_goal)
             else:
-                self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2)
+                if random.randint(1, self.walk_probability) == 1:
+                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                else:
+                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
 
         else:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
             if self.player_manager.x < next_platform_solution.lower_bound[0]:
                 # We are left of solution bounds.
                 #print("run sweep move")
-                if random.randint(0, self.walk_probability) == 1:
-                    self.player_manager.moonlight_slash_sweep_move(lookahead_ub, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2)
+                if restrict_moonlight_slash:
+                    self.player_manager.optimized_horizontal_move(lookahead_ub)
                 else:
-                    self.player_manager.moonlight_slash_sweep_move(lookahead_ub, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2*2)
+                    if random.randint(1, self.walk_probability) == 1:
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                    else:
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
 
             else:
                 # We are right of solution bounds
                 #print("run sweep move")
-                if random.randint(0, self.walk_probability) == 1:
-                    self.player_manager.moonlight_slash_sweep_move(lookahead_lb, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2)
+                if restrict_moonlight_slash:
+                    self.player_manager.optimized_horizontal_move(lookahead_lb)
                 else:
-                    self.player_manager.moonlight_slash_sweep_move(lookahead_lb, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*2)
+                    if random.randint(1, self.walk_probability) == 1:
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                    else:
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
 
-        time.sleep(0.1)
+        time.sleep(0.3)
 
         # All movement and attacks finished. Now perform movement
         movement_type = next_platform_solution.method

@@ -1,3 +1,0 @@
-Automatically generated
-FileName Name Offset
-medal1.png 우르스 격파왕 46,-80
