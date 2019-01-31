@@ -47,13 +47,17 @@ class SetKeyMap(tk.Toplevel):
         self.labels = {}
         keycount = 0
         _keyname = ""
+        self.columnconfigure(1, weight=1, minsize=150)
+        self.columnconfigure(0, weight=1)
         for keyname, value in self.keymap_data.items():
             dik_code, kor_name = value
-            tk.Label(self, text=kor_name).grid(row=keycount, column=0)
+            tk.Label(self, text=kor_name, borderwidth=1, relief=SOLID, padx=2).grid(row=keycount, column=0, sticky=N+S+E+W, pady=5, padx=(5,0))
             _keyname = keyname
             self.labels[_keyname] = tk.StringVar()
             self.labels[_keyname].set(self.dik2keysym(dik_code))
-            tk.Button(self, textvariable=self.labels[_keyname], command=lambda _keyname=_keyname: self.set_key(_keyname)).grid(row=keycount, column=1)
+            tk.Button(self, textvariable=self.labels[_keyname], command=lambda _keyname=_keyname: self.set_key(_keyname), borderwidth=1, relief=SOLID).grid(row=keycount, column=1, sticky=N+S+E+W, pady=5, padx=(0,5))
+            self.rowconfigure(keycount, weight=1)
+
             keycount += 1
 
         tk.Button(self, text="기본값 복원", command=self.set_default_keymap).grid(row=keycount, column=0)
@@ -148,10 +152,9 @@ def macro_loop(input_queue, output_queue):
                                 macro.abort()
                                 break
     except:
+        logger.exception("Exeption during loop execution:")
         output_queue.put(["log", "!! 매크로 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!", ])
         output_queue.put(["exception", "exception"])
-        logger.exception("Exeption during loop execution:")
-
 
 
 
@@ -188,7 +191,7 @@ class MainScreen(tk.Frame):
         self.macro_pid_infotext.set("실행되지 않음")
 
         tk.Label(self.auth_info_frame, text="아이디: %s"%(self.user_id)).pack(side=TOP)
-        tk.Label(self.auth_info_frame, text="만료시간: %s"%(time.strftime('%Y %m %d %H:%M:%S', time.localtime(self.expiration_time)))).pack(side=BOTTOM)
+        tk.Label(self.auth_info_frame, text="만료시간: %s"%(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.expiration_time)))).pack(side=BOTTOM)
 
         self.log_text_area = ScrolledText(self, height = 10, width = 20)
         self.log_text_area.pack(side=BOTTOM, expand=YES, fill=BOTH)
@@ -242,7 +245,7 @@ class MainScreen(tk.Frame):
                 self.macro_pid_infotext.set("실행되지 않음")
                 self.macro_process_label.configure(fg="red")
                 self.macro_process_toggle_button.configure(text="실행하기")
-                self.log("오류로 인해 매크로 프로세스가 종료되었습니다.")
+                self.log("오류로 인해 매크로 프로세스가 종료되었습니다. 로그파일을 확인해주세요.")
 
         self.after(1000, self.check_input_queue)
 
@@ -314,7 +317,6 @@ class MainScreen(tk.Frame):
                     return 0
                 else:
                     return keymap
-
 
     def log(self, *args):
         res_txt = []
@@ -392,7 +394,7 @@ class AuthScreen(tk.Frame):
             tk.Label(self, text="PC 인증 안내").grid(row=0, column=0, columnspan=2)
             tk.Label(self, text="사용기간이 만료되었습니다. 카톡으로 문의하여 기간연장을 신청하시기 바랍니다.").grid(row=1, column=0, columnspan=2)
             tk.Label(self, text="만료시간").grid(row=2, column=0)
-            tk.Label(self, text=time.strftime('%Y %m %d %H:%M:%S', time.localtime(auth_res[3]))).grid(row=2, column=1)
+            tk.Label(self, text=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(auth_res[3]))).grid(row=2, column=1)
             tk.Label(self, text="동록된 아이디").grid(row=3, column=0)
             tk.Label(self, text=auth_res[2]).grid(row=3, column=1)
             tk.Button(self, text="등록사이트 열기", command=lambda:webbrowser.open("http://ms-rbw.appspot.com")).grid(row=4, column=0, columnspan=2)

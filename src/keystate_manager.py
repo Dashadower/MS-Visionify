@@ -167,6 +167,8 @@ DEFAULT_KEY_MAP = {
     "release_overload": [dic.DIK_Q, "릴리즈 오버로드"],
     "demon_strike": [dic.DIK_1, "데몬 스트라이크"],
     "shield_chase": [dic.DIK_S, "실드 체이싱"],
-    "holy_symbol": [dic.DIK_4, "홀리 심볼"]
+    "holy_symbol": [dic.DIK_4, "홀리 심볼"],
+    "hyper_body": [dic.DIK_5, "하이퍼 바디"],
+    "sharp_eyes": [dic.DIK_6, "샤프 아이즈"]
 }
 

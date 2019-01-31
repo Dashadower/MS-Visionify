@@ -57,9 +57,11 @@ class MacroController:
         self.reset_navmap_loop_count = 10  # every x times reset navigation map, scrambling pathing
         self.navmap_reset_type = 1  # navigation map reset type. 1 for random, -1 for just reset. GETS ALTERNATED
 
-        self.walk_probability = 3
+        self.walk_probability = 5
         # This sets random.randint(1, walk_probability) to decide of moonlight slash should just walk instead of glide
         # Probability of walking is (1/walk_probability) * 100
+
+        self.restrict_moonlight_slash_probability = 5
 
         self.platform_fail_loops = 0
         # How many loops passed and we are not on a platform?
@@ -85,9 +87,7 @@ class MacroController:
                     self.player_manager.x >= platform.start_x and \
                     self.player_manager.x <= platform.end_x:
                 current_platform_hash = platform.hash
-
                 break
-
 
         for key, platform in self.terrain_analyzer.platforms.items():
             if self.player_manager.y == platform.start_y and \
@@ -120,10 +120,11 @@ class MacroController:
         """
         # Check if MapleStory window is alive
         random.seed((time.time() * 10**4) % 10 **3)
-        if random.randint(1, 5) == 2:
+        if random.randint(1, self.restrict_moonlight_slash_probability) == 2:
             restrict_moonlight_slash = True
         else:
             restrict_moonlight_slash = False
+
         if not self.player_manager.skill_counter_time:
             self.player_manager.skill_counter_time = time.time()
         if time.time() - self.player_manager.skill_counter_time > 60:
@@ -189,6 +190,7 @@ class MacroController:
 
             self.navmap_reset_type *= -1
             self.logger.debug("navigation map reset and randomized at loop #%d"%(self.loop_count))
+
 
         # Placeholder for Rune Detector
         self.player_manager.update()
@@ -263,9 +265,7 @@ class MacroController:
                     self.current_platform_hash = rune_platform_hash
                     time.sleep(1)
 
-
         # End Placeholder
-
 
         # We are on a platform. find an optimal way to clear platform.
         # If we know our next platform destination, we can make our path even more efficient
@@ -291,8 +291,8 @@ class MacroController:
             lookahead_lb = next_platform_solution.lower_bound[0]
             lookahead_ub = next_platform_solution.upper_bound[0]
 
-        lookahead_lb = lookahead_lb + random.randint(0, 3)
-        lookahead_ub = lookahead_ub - random.randint(0, 3)
+        lookahead_lb = lookahead_lb + random.randint(0, 2)
+        lookahead_ub = lookahead_ub - random.randint(0, 2)
 
         # end lookahead pathing
         # Start skill usage section
@@ -302,7 +302,6 @@ class MacroController:
             skill_used = self.player_manager.randomize_skill()
         else:
             skill_used = self.player_manager.randomize_skill()
-
         # End skill usage
 
         # Find coordinates to move to next platform
@@ -317,9 +316,9 @@ class MacroController:
                 self.player_manager.optimized_horizontal_move(in_solution_movement_goal)
             else:
                 if random.randint(1, self.walk_probability) == 1:
-                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+1.2)
                 else:
-                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                    self.player_manager.moonlight_slash_sweep_move(in_solution_movement_goal, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*1.2)
 
         else:
             # We need to move within the solution bounds. First, find closest solution bound which can cover majority of current platform.
@@ -330,9 +329,9 @@ class MacroController:
                     self.player_manager.optimized_horizontal_move(lookahead_ub)
                 else:
                     if random.randint(1, self.walk_probability) == 1:
-                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*1.2)
                     else:
-                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_ub, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*1.2)
 
             else:
                 # We are right of solution bounds
@@ -341,18 +340,14 @@ class MacroController:
                     self.player_manager.optimized_horizontal_move(lookahead_lb)
                 else:
                     if random.randint(1, self.walk_probability) == 1:
-                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, glide=False, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*1.2)
                     else:
-                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius+5)
+                        self.player_manager.moonlight_slash_sweep_move(lookahead_lb, no_attack_distance=skill_used * self.player_manager.moonlight_slash_x_radius*1.2)
 
-        time.sleep(0.3)
+        time.sleep(0.4)
 
         # All movement and attacks finished. Now perform movement
         movement_type = next_platform_solution.method
-
-
-        #print("actuating movement...", movement_type)
-
         if movement_type == ta.METHOD_DROP:
             self.player_manager.drop()
             time.sleep(1)
@@ -367,10 +362,13 @@ class MacroController:
             time.sleep(1)
         elif movement_type == ta.METHOD_DBLJMP_HALF:
             self.player_manager.dbljump_half()
-            time.sleep(1)
+            time.sleep(0.7)
 
+        #End inter-platform movement
 
+        # Other buffs
         self.player_manager.holy_symbol()
+        self.player_manager.hyper_body()
         self.player_manager.release_overload()
         time.sleep(0.05)
 

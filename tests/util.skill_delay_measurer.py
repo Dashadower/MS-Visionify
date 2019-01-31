@@ -20,7 +20,7 @@ while True:
     if playerpos:
         cv2.circle(minimap_image, playerpos, 4, (255, 0, 0), -1)
     regular_find = imutils.resize(minimap_image, width=400)
-    cv2.imshow("screen", regular_find)
+    cv2.imshow("s to start measuring", regular_find)
 
     #print("regular", playerpos)
     #print("templ", playerpos_templ)

@@ -25,60 +25,62 @@ class PlatformDataCaptureWindow(tk.Toplevel):
         self.screen_capturer = MapleScreenCapturer()
         if not self.screen_capturer.ms_get_screen_hwnd():
             showerror("지형파일 생성기", "메이플 창을 찾지 못했습니다. 메이플을 실행해 주세요.")
-        self.image_processor = StaticImageProcessor(self.screen_capturer)
-        self.terrain_analyzer = PathAnalyzer()
-        self.image_label = tk.Label(self)
-        self.image_label.pack(expand=YES, fill=BOTH)
+            self.destroy()
+        else:
+            self.image_processor = StaticImageProcessor(self.screen_capturer)
+            self.terrain_analyzer = PathAnalyzer()
+            self.image_label = tk.Label(self)
+            self.image_label.pack(expand=YES, fill=BOTH)
 
-        self.master_tool_frame = tk.Frame(self, borderwidth=2, relief=GROOVE)
-        self.master_tool_frame.pack(expand=YES, fill=BOTH)
+            self.master_tool_frame = tk.Frame(self, borderwidth=2, relief=GROOVE)
+            self.master_tool_frame.pack(expand=YES, fill=BOTH)
 
-        self.tool_frame_1 = tk.Frame(self.master_tool_frame)
-        self.tool_frame_1.pack(fill=X)
-        tk.Button(self.tool_frame_1, text="창 및 미니맵 다시 찾기", command=self.find_minimap_coords).pack(side=LEFT)
-        self.coord_label = tk.Label(self.tool_frame_1, text="x,y")
-        self.coord_label.pack(side=RIGHT, fill=Y, expand=YES)
+            self.tool_frame_1 = tk.Frame(self.master_tool_frame)
+            self.tool_frame_1.pack(fill=X)
+            tk.Button(self.tool_frame_1, text="창 및 미니맵 다시 찾기", command=self.find_minimap_coords).pack(side=LEFT)
+            self.coord_label = tk.Label(self.tool_frame_1, text="x,y")
+            self.coord_label.pack(side=RIGHT, fill=Y, expand=YES)
 
-        self.tool_frame_2 = tk.Frame(self.master_tool_frame)
-        self.tool_frame_2.pack(fill=X)
-        self.start_platform_record_button = tk.Button(self.tool_frame_2, text="스폰지형 기록시작", command=self.start_record_platform)
-        self.start_platform_record_button.pack(side=LEFT, expand=YES, fill=X)
-        self.stop_platform_record_button = tk.Button(self.tool_frame_2, text="스폰지형 기록중지", command=self.stop_record_platform, state=DISABLED)
-        self.stop_platform_record_button.pack(side=RIGHT, expand=YES, fill=X)
+            self.tool_frame_2 = tk.Frame(self.master_tool_frame)
+            self.tool_frame_2.pack(fill=X)
+            self.start_platform_record_button = tk.Button(self.tool_frame_2, text="스폰지형 기록시작", command=self.start_record_platform)
+            self.start_platform_record_button.pack(side=LEFT, expand=YES, fill=X)
+            self.stop_platform_record_button = tk.Button(self.tool_frame_2, text="스폰지형 기록중지", command=self.stop_record_platform, state=DISABLED)
+            self.stop_platform_record_button.pack(side=RIGHT, expand=YES, fill=X)
 
-        self.tool_frame_3 = tk.Frame(self.master_tool_frame)
-        self.tool_frame_3.pack(fill=X)
-        self.start_oneway_record_button = tk.Button(self.tool_frame_3, text="비스폰지형 기록시작", command=self.start_record_oneway)
-        self.start_oneway_record_button.pack(side=LEFT, expand=YES, fill=X)
-        self.stop_oneway_record_button = tk.Button(self.tool_frame_3, text="비스폰지형 기록중지",command=self.stop_record_oneway, state=DISABLED)
-        self.stop_oneway_record_button.pack(side=RIGHT, expand=YES, fill=X)
+            self.tool_frame_3 = tk.Frame(self.master_tool_frame)
+            self.tool_frame_3.pack(fill=X)
+            self.start_oneway_record_button = tk.Button(self.tool_frame_3, text="비스폰지형 기록시작", command=self.start_record_oneway)
+            self.start_oneway_record_button.pack(side=LEFT, expand=YES, fill=X)
+            self.stop_oneway_record_button = tk.Button(self.tool_frame_3, text="비스폰지형 기록중지",command=self.stop_record_oneway, state=DISABLED)
+            self.stop_oneway_record_button.pack(side=RIGHT, expand=YES, fill=X)
 
-        self.tool_frame_4 = tk.Frame(self.master_tool_frame)
-        self.tool_frame_4.pack(fill=X, side=BOTTOM)
-        tk.Button(self.tool_frame_4, text="초기화", command=self.on_reset_platforms).pack(side=LEFT,expand=YES,fill=X)
-        tk.Button(self.tool_frame_4, text="저장하기",command=self.on_save).pack(side=RIGHT, expand=YES, fill=X)
+            self.tool_frame_4 = tk.Frame(self.master_tool_frame)
+            self.tool_frame_4.pack(fill=X, side=BOTTOM)
+            tk.Button(self.tool_frame_4, text="초기화", command=self.on_reset_platforms).pack(side=LEFT,expand=YES,fill=X)
+            tk.Button(self.tool_frame_4, text="저장하기",command=self.on_save).pack(side=RIGHT, expand=YES, fill=X)
 
-        self.platform_listbox = tk.Listbox(self, selectmode=MULTIPLE)
-        self.platform_listbox.pack(expand=YES, fill=BOTH)
-        self.platform_listbox_platform_index = {}
-        self.platform_listbox_oneway_index = {}
-        self.platform_listbox.bind("<Button-3>", self.on_platform_list_rclick)
+            self.platform_listbox = tk.Listbox(self, selectmode=MULTIPLE)
+            self.platform_listbox.pack(expand=YES, fill=BOTH)
+            self.platform_listbox_platform_index = {}
+            self.platform_listbox_oneway_index = {}
+            self.platform_listbox.bind("<Button-3>", self.on_platform_list_rclick)
 
-        self.platform_listbox_menu = tk.Menu(self, tearoff=0)
-        self.platform_listbox_menu.add_command(label="선택된 항목 삭제", command=self.on_listbox_delete)
+            self.platform_listbox_menu = tk.Menu(self, tearoff=0)
+            self.platform_listbox_menu.add_command(label="선택된 항목 삭제", command=self.on_listbox_delete)
 
-        self.image_processor.update_image(set_focus=False)
-        self.minimap_rect = self.image_processor.get_minimap_rect()
-        if not self.minimap_rect:
-            self.image_label.configure(text="미니맵 찾을수 없음", fg="red")
+            self.image_processor.update_image(set_focus=False)
+            self.minimap_rect = self.image_processor.get_minimap_rect()
+            if not self.minimap_rect:
+                self.image_label.configure(text="미니맵 찾을수 없음", fg="red")
 
-        self.stopEvent = threading.Event()
-        self.thread = threading.Thread(target=self.update_image, args=())
-        self.thread.start()
+            self.stopEvent = threading.Event()
+            self.thread = threading.Thread(target=self.update_image, args=())
+            self.thread.start()
 
-        self.record_mode = 0  # 0 if not recording, 1 if normal platform, 2 if oneway
+            self.record_mode = 0  # 0 if not recording, 1 if normal platform, 2 if oneway
 
-        self.protocol("WM_DELETE_WINDOW", self.onClose)
+            self.protocol("WM_DELETE_WINDOW", self.onClose)
 
     def onClose(self):
         self.stopEvent.set()
@@ -165,9 +167,11 @@ class PlatformDataCaptureWindow(tk.Toplevel):
     def on_save(self):
         save_dir = asksaveasfilename(initialdir=os.getcwd(), title="저장경로 설정", filetypes=(("지형 파일(*.platform)","*.platform"),))
         if save_dir:
+            if ".platform" not in save_dir:
+                save_dir += ".platform"
             self.terrain_analyzer.save(save_dir, self.minimap_rect)
             showinfo("지형파일 생성기", "파일경로 {0}\n 저장되었습니다.".format(save_dir))
-            self.destroy()
+            self.onClose()
 
     def on_reset_platforms(self):
         if askyesno("지형파일 생성기", "정말 모든 지형들을 삭제할까요?"):
@@ -213,8 +217,12 @@ class PlatformDataCaptureWindow(tk.Toplevel):
                 continue
 
             cropped_img = cv2.cvtColor(self.image_processor.bgr_img[self.minimap_rect[1]:self.minimap_rect[1] + self.minimap_rect[3], self.minimap_rect[0]:self.minimap_rect[0] + self.minimap_rect[2]], cv2.COLOR_BGR2RGB)
-            cv2.line(cropped_img, (playerpos[0], 0), (playerpos[0], cropped_img.shape[0]), (0,0,0), 1)
-            cv2.line(cropped_img, (0, playerpos[1]), (cropped_img.shape[1], playerpos[1]), (0, 0, 0), 1)
+            if self.record_mode:
+                cv2.line(cropped_img, (playerpos[0], 0), (playerpos[0], cropped_img.shape[0]), (0, 0, 255), 1)
+                cv2.line(cropped_img, (0, playerpos[1]), (cropped_img.shape[1], playerpos[1]), (0, 0, 255), 1)
+            else:
+                cv2.line(cropped_img, (playerpos[0], 0), (playerpos[0], cropped_img.shape[0]), (0,0,0), 1)
+                cv2.line(cropped_img, (0, playerpos[1]), (cropped_img.shape[1], playerpos[1]), (0, 0, 0), 1)
 
             selected = self.platform_listbox.curselection()
             if selected:
