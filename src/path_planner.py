@@ -16,3 +16,19 @@ class PathPlanner:
         :param height: height of map
         :return: map_grid: list of lists representing map where each element is 1 if platform, 0 if empty.
         """
+        map_grid = []
+        for y in range(height):
+            map_grid.append([])
+            for x in range(width):
+                map_grid[y].append(0)
+
+
+
+        return map_grid
+
+if __name__ == "__main__":
+    planner = PathPlanner()
+    ct = planner.generate_map_grid(None, None, 100, 40)
+    for row in ct:
+        print(row)
+
