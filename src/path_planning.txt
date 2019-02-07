@@ -34,3 +34,17 @@ Keep track of number of subplatforms and solutions used during traversal
 If within current platform and next platform goal is decided, movement direction within the current platform cannot be changed
 Terminate when start platform is reached and calculate efficiency for each path found
 Select path with highest efficiency
+
+Some research on correlation between double up press delay and jump height in double jumps:
+maximum delay between jump and up key: 0.45 (measured in 0.05 increments)
+minimum time for max height jump: 0.15
+
+regression result for
+absolute height difference y
+delay between pressing alt and first up press x
+
+first regression result:
+ŷ = -76.42857X + 41.92857
+
+second regression result:
+ŷ = -78.33333X + 41.5
