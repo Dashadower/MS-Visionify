@@ -136,7 +136,6 @@ class RuneDetector:
         img = self.capture_roi()
         processed_imgs = self.preprocess(img)
         if len(processed_imgs) != 4:
-            self.logger.debug("Failed to extract 4 ROI from processed image")
             return -1
         #cv2.imwrite("roi.png", img)
         tensor = self.images2tensor(processed_imgs)
@@ -178,14 +177,15 @@ if __name__ == "__main__":
     try:
         label = {'down': 0, 'left': 1, 'right': 2, 'up': 3}
 
-        solver = RuneDetector("arrow_classifier_keras_gray.h5", label, logger=logger)
+        solver = RuneDetector("arrow_classifier_keras_gray.h5", label)
         logger.debug("Log start")
         logger.debug("screen handle: " + str(solver.screen_processor.ms_get_screen_hwnd()))
         logger.debug("screen rect: " + str(solver.screen_processor.ms_get_screen_rect(solver.screen_processor.ms_get_screen_hwnd())))
         # solver.scrp.screen_capture(800,600, save=True, save_name="dta.png")
+        logger.debug("Start processing input...")
         while True:
             img = solver.capture_roi()
-            cv2.imshow("Solver", img)
+            cv2.imshow("ExIt: Q", img)
 
             return_val = solver.solve_auto()
             if return_val == -1:
@@ -195,9 +195,7 @@ if __name__ == "__main__":
             k = cv2.waitKey(1)
             if k == ord("q"):
                 break
-            if cv2.getWindowProperty("Solver", 0) < 0:
-                logger.debug("Program Exit")
-                break
+        logger.debug("Application exit.")
     except:
         logger.exception("EXCEPTION")
 
