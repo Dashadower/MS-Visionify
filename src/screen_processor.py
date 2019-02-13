@@ -308,4 +308,5 @@ class StaticImageProcessor:
 if __name__ == "__main__":
     dx = MapleScreenCapturer()
     hwnd = dx.ms_get_screen_hwnd()
-    print(dx.ms_get_screen_rect(hwnd))
+    rect = dx.ms_get_screen_rect(hwnd)
+    dx.capture(rect=rect)
