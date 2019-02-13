@@ -460,6 +460,18 @@ class PlayerController:
         time.sleep(abs(0.01 + self.random_duration(0.15)))
         self.key_mgr._direct_release(DIK_UP)
 
+    def dbljump_timed(self, delay):
+        """
+        If using linear eq, delay explicit amount of time for double jump
+        :param delay: time before double jump command is issued in float seconds
+        :return: None
+        """
+        self.key_mgr.single_press(self.jump_key)
+        time.sleep(delay)
+        self.key_mgr.single_press(DIK_UP)
+        time.sleep(0.01)
+        self.key_mgr._direct_release(DIK_UP)
+
     def jumpl(self):
         """Blocking call"""
         self.key_mgr._direct_press(DIK_LEFT)

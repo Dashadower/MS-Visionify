@@ -30,37 +30,93 @@ def render():
             else:
                 cv.create_rectangle(column*tile_size, row*tile_size, (column+1)*tile_size, (row+1)*tile_size, fill="white")
 
-clickmode = 1
+
 start_coord = (142,27)
 end_coord = (80,8)
-def onclick(event):
+def onrightclick(event):
+    global start_coord, end_coord
+    print("reached")
+    end_coord = (int(event.x/tile_size), int(event.y/tile_size))
+
+    render()
+    cv.create_oval((start_coord[0] - 2) * tile_size, (start_coord[1] - 2) * tile_size, (start_coord[0] + 3) * tile_size,
+                   (start_coord[1] + 3) * tile_size, fill="white")
+    print("pathfinding", start_coord, end_coord)
+    s = time.time()
+    path = planner.astar(start_coord, end_coord)
+    e = time.time()
+    print("time", e-s)
+    print(path)
+    cv.create_rectangle(start_coord[0] * tile_size, start_coord[1] * tile_size, (start_coord[0] + 1) * tile_size,
+                        (start_coord[1] + 1) * tile_size, fill="green")
+    for index,method in enumerate(path):
+        sc = method[0]
+        cv.create_rectangle(sc[0] * tile_size, sc[1] * tile_size,
+                            (sc[0] + 1) * tile_size,
+                            (sc[1] + 1) * tile_size, fill="purple")
+        if index == 0:
+            old_coord = start_coord
+        else:
+            old_coord = path[index - 1][0]
+        mtype = method[1]
+        if mtype == "l" or  mtype == "r":
+            color = "green"
+        elif mtype == "drop":
+            color = "blue"
+        elif mtype == "dbljmp":
+            color = "yellow"
+
+        cv.create_line((old_coord[0] + 0.5) * tile_size, (old_coord[1] + 0.5) * tile_size,
+                       (sc[0] + 0.5) * tile_size, (sc[1] + 0.5) * tile_size, fill=color,
+                       width=5)
+
+def onleftclick(event):
     global clickmode, start_coord, end_coord
-    if clickmode == 1:
-        start_coord = (int(event.x/tile_size), int(event.y/tile_size))
-        cv.create_rectangle(start_coord[0] * tile_size, start_coord[1] * tile_size, (start_coord[0] + 1) * tile_size,
-                            (start_coord[1] + 1) * tile_size, fill="green")
-        clickmode = -1
-    else:
-        print("reached")
-        end_coord = (int(event.x/tile_size), int(event.y/tile_size))
-        clickmode = 1
-        render()
-        print("pathfinding", start_coord, end_coord)
-        s = time.time()
-        path = planner.astar(start_coord, end_coord)
-        e = time.time()
-        print("time", e-s)
-        for method in path:
-            start_coord = method[0]
-            cv.create_rectangle(start_coord[0] * tile_size, start_coord[1] * tile_size,
-                                (start_coord[0] + 1) * tile_size,
-                                (start_coord[1] + 1) * tile_size, fill="green")
+    render()
+    start_coord = (int(event.x/tile_size), int(event.y/tile_size))
+    cv.create_rectangle(start_coord[0] * tile_size, start_coord[1] * tile_size, (start_coord[0] + 1) * tile_size,
+                        (start_coord[1] + 1) * tile_size, fill="green")
+
+    cv.create_oval((start_coord[0] - 2) * tile_size, (start_coord[1] - 2) * tile_size, (start_coord[0] + 3) * tile_size,
+                   (start_coord[1] + 3) * tile_size, fill="white")
+    print("pathfinding", start_coord, end_coord)
+    s = time.time()
+    path = planner.astar(start_coord, end_coord)
+    e = time.time()
+    print("time", e - s)
+    print(path)
+    cv.create_rectangle(start_coord[0] * tile_size, start_coord[1] * tile_size, (start_coord[0] + 1) * tile_size,
+                        (start_coord[1] + 1) * tile_size, fill="green")
+    for index, method in enumerate(path):
+        sc = method[0]
+        cv.create_rectangle(sc[0] * tile_size, sc[1] * tile_size,
+                            (sc[0] + 1) * tile_size,
+                            (sc[1] + 1) * tile_size, fill="purple")
+        if index == 0:
+            old_coord = start_coord
+        else:
+            old_coord = path[index - 1][0]
+        mtype = method[1]
+        if mtype == "l" or mtype == "r":
+            color = "green"
+        elif mtype == "drop":
+            color = "blue"
+        elif mtype == "dbljmp":
+            color = "yellow"
+
+        cv.create_line((old_coord[0] + 0.5) * tile_size, (old_coord[1] + 0.5) * tile_size,
+                       (sc[0] + 0.5) * tile_size, (sc[1] + 0.5) * tile_size, fill=color,
+                       width=5)
+
 
 render()
-cv.bind("<Button-1>", onclick)
-"""start_coord = (64, 38)
-end_coord = (168, 27)
-print(planner.astar_find_proximity_pixels(start_coord[0], start_coord[1]))
+cv.bind("<Button-3>", onrightclick)
+cv.bind("<Button-1>", onleftclick)
+print(planner.astar_find_proximity_pixels(18, 23, (32, 44)))
+"""#start_coord = (64, 38)
+#end_coord = (168, 27)
+start_coord = (18, 23)
+end_coord = (32, 23)
 tile_size = 8
 path = planner.astar(start_coord, end_coord)
 

@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import terrain_analyzer, time
+import terrain_analyzer, time, math
 
 class Node:
     def __init__(self, x=None, y=None, g=None, h=None, path=[]):
@@ -17,6 +17,7 @@ class Node:
 class PathPlanner:
     def __init__(self):
         self.map_grid = []
+        self.astar_open_vals = []
         self.map_width = 0
         self.map_height = 0
 
@@ -43,6 +44,10 @@ class PathPlanner:
         for y in range(height):
             map_grid.append([0 for x in range(width)])
 
+        self.astar_open_vals = []
+        for y in range(height):
+            self.astar_open_vals.append([0 for x in range(width)])
+
         for key, platform in platforms.items():
             # currently this only uses the platform's start x and y coords and traces them until end x coords.
             for platform_coord in range(platform.start_x, platform.end_x + 1):
@@ -65,42 +70,41 @@ class PathPlanner:
         elif map_grid:
             self.map_grid = map_grid
 
-        open_list = set()
-        closed_list = set()
+        self.astar_open_vals = []
+        for y in range(len(self.map_grid)):
+            self.astar_open_vals.append([0 for x in range(len(self.map_grid[0]))])
 
+        open_list = set()
+        closed_set = set()
+        open_set = set()
         open_list.add(Node(current_coordinate[0], current_coordinate[1], g=0, h=0))
+        open_set.add(current_coordinate)
 
         while open_list:
             selection = min(open_list, key=lambda x: x.calculate_f())
+
+            if selection.x == goal_coordinate[0] and selection.y == goal_coordinate[1]:
+                return selection.path
+
             open_list.remove(selection)
+            open_set.remove((selection.x, selection.y))
+            closed_set.add((selection.x, selection.y))
             for coordinate, method in self.astar_find_proximity_pixels(selection.x, selection.y, goal_coordinate):
+                if coordinate in closed_set:
+                    continue
                 successor_g = selection.g + self.astar_g(selection.x, selection.y, coordinate[0], coordinate[1])
                 successor_h = self.astar_h(coordinate[0], coordinate[1], goal_coordinate[0], goal_coordinate[1])
-                successor_path = selection.path + [(coordinate,method)]
-                if coordinate == goal_coordinate:
-                    return successor_path
-
-                skip = False
-                for existing_open_node in open_list:
-                    if existing_open_node.x == coordinate[0] and existing_open_node.y == coordinate[1]:
-                        if existing_open_node.f < successor_g + successor_h:
-                            skip = True
-                            break
-
-                if skip:
-                    continue
-                for existing_closed_node in closed_list:
-                    if existing_closed_node[0] == coordinate:
-                        if existing_closed_node[1] < successor_g + successor_h:
-                            skip = True
-                            break
-                if skip:
-                    continue
+                successor_path = selection.path + [(coordinate, method)]
+                if coordinate in open_set:
+                    if self.astar_open_vals[coordinate[1]][coordinate[0]] < successor_g:
+                        continue
 
                 successor_node = Node(coordinate[0], coordinate[1], g=selection.g + successor_g, h=successor_h,path=successor_path)
                 open_list.add(successor_node)
+                open_set.add(coordinate)
+                if self.astar_open_vals[coordinate[1]][coordinate[0]] > successor_g:
+                    self.astar_open_vals[coordinate[1]][coordinate[0]] = successor_g
 
-            closed_list.add(((selection.x, selection.y), selection.f))
 
 
     def astar_g(self, x1, y1, x2, y2):
@@ -108,11 +112,12 @@ class PathPlanner:
             return abs(x1-x2)
         else:
             if y1 < y2:
-                return abs(y1-y2) * 1.5
+                return abs(y1-y2)# * 1.5
             elif y1 > y2:
-                return abs(y1-y2)
+                return abs(y1-y2)# * 1.2
     def astar_h(self, x1, y1, x2, y2):
-        return (x1-x2)**2 + (y1-y2)**2
+        #return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+        return abs(x1-x2) + abs(y1-y2)
 
     def doublejump_cost(self, y1, y2):
         """
@@ -123,8 +128,16 @@ class PathPlanner:
         """
         absdiff = abs(y1-y2)
 
-        linexp = -76.42857*absdiff + 41.92857
-        # generated using linear regression
+        # Some info on equation
+        # regression for y bar where y is jump height and t is delay in seconds
+        # y = -76.42857t + 41.92857
+        # solved for t and simplified
+        # t = -(y - 41.9)/76.4
+
+        t = round(-(absdiff - 41.9)/76.4, 2)
+        if t >= 0.45:
+            t = 0.45
+        return t
 
     def astar_find_proximity_pixels(self, x, y, goal_coordinate):
         """
@@ -140,15 +153,16 @@ class PathPlanner:
         contiunue_check = True
         while contiunue_check:
             if x-x_increment == 0:
-                return_list.append(((x-x_increment, y), "l"))
+                return_list.append(((x-x_increment + 1, y), "l"))
                 break
             if (x-x_increment, y) == goal_coordinate:
                 return_list.append(((x - x_increment, y), "l"))
                 break
+
             if self.map_grid[y][x-x_increment] == 1:
                 drop_distance = 1
                 while True:
-                    if y + drop_distance == len(self.map_grid) - 1:
+                    if y + drop_distance >= len(self.map_grid) - 1:
                         break
                     if self.map_grid[y + drop_distance][x] == 1:
                         return_list.append(((x - x_increment, y), "l"))
@@ -156,8 +170,8 @@ class PathPlanner:
                         break
                     drop_distance += 1
 
-                for jmpheight in range(1, self.max_doublejump_height):
-                    if y - jmpheight == 0:
+                for jmpheight in range(1, self.max_doublejump_height+1):
+                    if y - jmpheight <= 0:
                         break
 
                     if self.map_grid[y - jmpheight][x-x_increment] == 1:
@@ -165,16 +179,16 @@ class PathPlanner:
                         contiunue_check = False
                         break
             else:
-                return_list.append(((x - x_increment, y), "l"))
+                if x_increment != 1:
+                    return_list.append(((x - x_increment, y), "l"))
                 break
             x_increment += 1
 
-        x_increment = 0
+        x_increment = 1
         contiunue_check = True
         while contiunue_check:
             if x + x_increment == 0:
-                new_coord = self.map_grid[y][x - x_increment]
-                return_list.append(((x + x_increment, y), "r"))
+                return_list.append(((x + x_increment - 1, y), "r"))
                 break
             if (x+x_increment, y) == goal_coordinate:
                 return_list.append(((x + x_increment, y), "r"))
@@ -182,7 +196,7 @@ class PathPlanner:
             if self.map_grid[y][x + x_increment] == 1:
                 drop_distance = 1
                 while True:
-                    if y + drop_distance == len(self.map_grid) - 1:
+                    if y + drop_distance >= len(self.map_grid) - 1:
                         break
                     if self.map_grid[y + drop_distance][x] == 1:
                         return_list.append(((x + x_increment, y), "r"))
@@ -190,8 +204,8 @@ class PathPlanner:
                         break
                     drop_distance += 1
 
-                for jmpheight in range(1, self.max_doublejump_height):
-                    if y - jmpheight == 0:
+                for jmpheight in range(1, self.max_doublejump_height+1):
+                    if y - jmpheight <= 0:
                         break
 
                     if self.map_grid[y - jmpheight][x + x_increment] == 1:
@@ -199,7 +213,8 @@ class PathPlanner:
                         contiunue_check = False
                         break
             else:
-                return_list.append(((x + x_increment, y), "r"))
+                if x_increment != 1:
+                    return_list.append(((x + x_increment, y), "r"))
                 break
             x_increment += 1
 
