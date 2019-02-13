@@ -27,9 +27,11 @@ function select(current_node):
 METHOD_DROP = "drop"
 METHOD_DBLJMP_MAX = "dbljmp_max"
 METHOD_DBLJMP_HALF = "dbljmp_half"
+METHOD_DBLJMP = "dbljmp"
 METHOD_JUMPR = "jumpr"
 METHOD_JUMPL = "jumpl"
-
+METHOD_MOVER = "movr"
+METHOD_MOVEL = "movl"
 class Platform:
     def __init__(self, start_x = None, start_y = None, end_x = None, end_y = None, last_visit = None, solutions = None, hash = None):
         self.start_x = start_x
@@ -48,6 +50,19 @@ class Solution:
         self.upper_bound = upper_bound
         self.method = method
         self.visited = visited
+
+
+class AstarNode:
+    def __init__(self, x=None, y=None, g=None, h=None, path=[]):
+        self.x = x
+        self.y = y
+        self.g = g
+        self.h = h
+        self.f = 0
+        self.path = path
+        if self.g:
+            self.f = self.g + self.h
+
 
 class PathAnalyzer:
     """Converts minimap player coordinates to terrain information like ladders and platforms."""
@@ -82,6 +97,9 @@ class PathAnalyzer:
         # below constants are used for path related algorithms.
         self.subplatform_length = 2  # length of subdivided platform
 
+        self.astar_map_grid = []  # maap grid representation for a star graph search. reinitialized  on every call
+        self.astar_open_val_grid = []  # 2d array to keep track of "open" values in a star search.
+        self.astar_minimap_rect = []  # minimap rect (x,y,w,h) for use in generating astar data
     def save(self, filename="mapdata.platform", minimap_roi = None):
         """Save platforms, oneway_platforms, ladders, minimap_roi to a file
         :param filename: path to save file
@@ -90,7 +108,7 @@ class PathAnalyzer:
             pickle.dump({"platforms" : self.platforms, "oneway": self.oneway_platforms, "minimap" : minimap_roi}, f)
 
     def load(self, filename="mapdata.platform"):
-        """Open a map data file and load data from file
+        """Open a map data file and load data from file. Also sets class variables platform, oneway_platform, and minimap.
         :param filename: Plath to map data file
         :return boundingRect tuple of minimap as stored on file"""
         if os.path.exists(filename):
@@ -99,6 +117,7 @@ class PathAnalyzer:
                 self.platforms = data["platforms"]
                 self.oneway_platforms = data["oneway"]
                 minimap_coords = data["minimap"]
+                self.astar_minimap_rect = minimap_coords
             return minimap_coords 
 
     def verify_data_file(self, filename):
@@ -395,6 +414,178 @@ class PathAnalyzer:
         Subdivides each platform in self.platforms into subplatforms having length of self.subplatform_length
         :return:
         """
+        pass
+
+    def astar_pathfind(self, start_coord, goal_coords):
+        """
+        Uses A* pathfinding to calculate a action map from start coord to goal.
+        :param start_coord: start coordinate tuple for generating path
+        :param goal_coords: goal coordinate
+        :return: list of action tuple (g, a) where g is action goal coordinate tuple, a an action METHOD
+        """
+        self.astar_map_grid = []
+        self.astar_open_val_grid = []
+        map_width, map_height = self.astar_minimap_rect[2], self.astar_minimap_rect[3]
+
+        # Reinitialize map grid data
+        for height in map_height:
+            self.astar_map_grid.append([0 for x in range(map_width)])
+            self.astar_open_val_grid.append([0 for x in range(map_width)])
+
+        for key, platform in self.platforms.items():
+            # currently this only uses the platform's start x and y coords and traces them until end x coords.
+            for platform_coord in range(platform.start_x, platform.end_x + 1):
+                self.astar_map_grid[platform.start_y][platform_coord] = 1
+
+        open_list = set()
+        closed_set = set()
+        open_set = set()
+        open_list.add(AstarNode(start_coord[0], start_coord[1], g=0, h=0))
+        open_set.add(start_coord)
+
+        while open_list:
+            selection = min(open_list, key=lambda x: x.calculate_f())
+
+            if selection.x == goal_coords[0] and selection.y == goal_coords[1]:
+                return selection.path
+
+            open_list.remove(selection)
+            open_set.remove((selection.x, selection.y))
+            closed_set.add((selection.x, selection.y))
+            for coordinate, method in self.astar_find_available_moves(selection.x, selection.y, goal_coords):
+                if coordinate in closed_set:
+                    continue
+                successor_g = selection.g + self.astar_g(selection.x, selection.y, coordinate[0], coordinate[1])
+                successor_h = self.astar_h(coordinate[0], coordinate[1], goal_coords[0], goal_coords[1])
+                successor_path = selection.path + [(coordinate, method)]
+                if coordinate in open_set:
+                    if self.astar_open_val_grid[coordinate[1]][coordinate[0]] < successor_g:
+                        continue
+
+                successor_node = AstarNode(coordinate[0], coordinate[1], g=selection.g + successor_g, h=successor_h, path=successor_path)
+                open_list.add(successor_node)
+                open_set.add(coordinate)
+                if self.astar_open_val_grid[coordinate[1]][coordinate[0]] > successor_g:
+                    self.astar_open_val_grid[coordinate[1]][coordinate[0]] = successor_g
+
+    def astar_g(self, current_x, current_y, goal_x, goal_y):
+        """
+        generates A* g value
+        :param current_x: x coordinate of current position
+        :param current_y: y corodinate of current position
+        :param goal_x: x coordinate of goal position
+        :param goal_y: y coordinate of goal position
+        :return:
+        """
+        if current_y == goal_y:
+            return abs(current_x-goal_x)
+        else:
+            if current_y < goal_y:
+                return abs(current_y-goal_y)# * 1.5
+            elif current_y > goal_y:
+                return abs(current_y-goal_y)# * 1.2
+
+    def astar_h(self, x1, y1, x2, y2):
+        #return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+        return abs(x1-x2) + abs(y1-y2)
+
+    def astar_find_available_moves(self, x, y, goal_coordinate):
+        """
+        Finds all the pixels which can be reached from (x,y). Methods include horizontal movement, jump and dropping
+        :param x: x coord
+        :param y: y coord
+        :param goal_coordinate: goal coordinate tuple
+        :return: list of tuples (coord, method) where coord is a coordinate tuple, method
+        """
+        return_list = []
+        # check horizontally touching pixels.
+        x_increment = 1
+        contiunue_check = True
+        while contiunue_check:
+            if x-x_increment == 0:
+                return_list.append(((x-x_increment + 1, y), "l"))
+                break
+            if (x-x_increment, y) == goal_coordinate:
+                return_list.append(((x - x_increment, y), "l"))
+                break
+
+            if self.astar_map_grid[y][x-x_increment] == 1:
+                drop_distance = 1
+                while True:
+                    if y + drop_distance >= len(self.astar_map_grid) - 1:
+                        break
+                    if self.astar_map_grid[y + drop_distance][x] == 1:
+                        return_list.append(((x - x_increment, y), "l"))
+                        contiunue_check = False
+                        break
+                    drop_distance += 1
+
+                for jmpheight in range(1, self.max_doublejump_height+1):
+                    if y - jmpheight <= 0:
+                        break
+
+                    if self.astar_map_grid[y - jmpheight][x-x_increment] == 1:
+                        return_list.append(((x - x_increment, y), "l"))
+                        contiunue_check = False
+                        break
+            else:
+                if x_increment != 1:
+                    return_list.append(((x - x_increment, y), "l"))
+                break
+            x_increment += 1
+
+        x_increment = 1
+        contiunue_check = True
+        while contiunue_check:
+            if x + x_increment == 0:
+                return_list.append(((x + x_increment - 1, y), "r"))
+                break
+            if (x+x_increment, y) == goal_coordinate:
+                return_list.append(((x + x_increment, y), "r"))
+                break
+            if self.astar_map_grid[y][x + x_increment] == 1:
+                drop_distance = 1
+                while True:
+                    if y + drop_distance >= len(self.astar_map_grid) - 1:
+                        break
+                    if self.astar_map_grid[y + drop_distance][x] == 1:
+                        return_list.append(((x + x_increment, y), "r"))
+                        contiunue_check = False
+                        break
+                    drop_distance += 1
+
+                for jmpheight in range(1, self.max_doublejump_height+1):
+                    if y - jmpheight <= 0:
+                        break
+
+                    if self.astar_map_grid[y - jmpheight][x + x_increment] == 1:
+                        return_list.append(((x + x_increment, y), "r"))
+                        contiunue_check = False
+                        break
+            else:
+                if x_increment != 1:
+                    return_list.append(((x + x_increment, y), "r"))
+                break
+            x_increment += 1
+
+        for jmpheight in range(1,self.max_doublejump_height):
+            if y - jmpheight == 0:
+                break
+
+            if self.astar_map_grid[y-jmpheight][x] == 1:
+                return_list.append(((x, y-jmpheight), "dbljmp"))
+
+        drop_distance = 1
+        while True:
+            if y + drop_distance == len(self.astar_map_grid)-1:
+                break
+            if self.astar_map_grid[y+drop_distance][x] == 1:
+                return_list.append(((x, y + drop_distance), "drop"))
+                break
+
+            drop_distance += 1
+
+        return return_list
 
     def reset(self):
         """

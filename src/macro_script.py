@@ -376,6 +376,12 @@ class MacroController:
         self.loop_count += 1
         return 0
 
+    def alternative_loop(self):
+        """
+        Uses Astar pathing instead of PlatformScan to plan paths.
+        :return: loop exit code
+        """
+
     def unstick(self):
         """
         Run when script can't find which platform we are at.
