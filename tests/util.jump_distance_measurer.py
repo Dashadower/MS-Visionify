@@ -1,7 +1,6 @@
 import cv2, imutils, os
 from src.screen_processor import MapleScreenCapturer
 from src.screen_processor import StaticImageProcessor
-from player_medal_detector import PlayerMedalDetector
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -10,8 +9,7 @@ scrp = StaticImageProcessor(screencap)
 scrp.update_image()
 area = scrp.get_minimap_rect()
 os.chdir("../src")
-medal = PlayerMedalDetector()
-medal.create_template("medal1.png")
+
 
 jmp_coords = []
 start_x = None

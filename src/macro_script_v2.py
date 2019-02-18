@@ -4,7 +4,8 @@ import screen_processor as sp
 import terrain_analyzer as ta
 import directinput_constants as dc
 import rune_solver as rs
-import logging, math, time, random, sys
+from path_planner import PathPlanner
+import logging, math, time, random
 
 class CustomLogger:
     def __init__(self, logger_obj, logger_queue):
@@ -41,7 +42,7 @@ class MacroControllerV2:
         logger.addHandler(fh)
 
         self.logger = CustomLogger(logger, self.log_queue)
-        self.logger.debug("MacroController init")
+        self.logger.debug("MacroControllerV2 init")
         self.screen_processor = sp.StaticImageProcessor(self.screen_capturer)
         self.terrain_analyzer = ta.PathAnalyzer()
         self.keyhandler = km.KeyboardInputManager()
@@ -74,12 +75,16 @@ class MacroControllerV2:
         self.platform_fail_loop_threshold = 10
         # If self.platform_fail_loops is greater than threshold, run unstick()
 
-        self.logger.debug("MacroController init finished")
+        self.path_planner = PathPlanner()
+
+        self.logger.debug("MacroControllerV2 init finished")
 
     def load_and_process_platform_map(self, path):
         self.terrain_analyzer.load(path)
-        self.terrain_analyzer.generate_solution_dict()
+        x, y, w, h = self.terrain_analyzer.generate_solution_dict()
         self.logger.debug("Loaded platform data %s"%(path))
+        self.path_planner.generate_map_grid(self.terrain_analyzer.platforms, self.terrain_analyzer.oneway_platforms, w, h)
+        self.logger.debug("Generated map grid for path planner")
 
     def distance(self, x1, y1, x2, y2):
         return math.sqrt((x1-x2)**2 + (y1-y2)**2)
@@ -155,8 +160,8 @@ class MacroControllerV2:
 
         # Check if player is on platform
         self.current_platform_hash = None
-        get_current_platform = self.find_current_platform()
-        if not get_current_platform:
+        current_platform_hash = self.find_current_platform()
+        if not current_platform_hash:
             # Move to nearest platform and redo loop
             # Failed to find platform.
             self.platform_fail_loops += 1
@@ -166,7 +171,7 @@ class MacroControllerV2:
             return -1
         else:
             self.platform_fail_loops = 0
-            self.current_platform_hash = get_current_platform
+            self.current_platform_hash = current_platform_hash
 
 
         # Placeholder for Rune Detector
@@ -243,10 +248,15 @@ class MacroControllerV2:
                     time.sleep(1)
 
         # End Placeholder
-
-
-
-        #End inter-platform movement
+        # Start inter-platform movement
+        dest_platform_hash = random.choice([key for key in self.terrain_analyzer.platforms.keys() if key != current_platform_hash])
+        dest_platform = self.terrain_analyzer.platforms[dest_platform_hash]
+        random_platform_coord = (random.randint(dest_platform.start_x, dest_platform_hash.end_x), dest_platform.start_y)
+        # Once we have selected the platform to move, we can generate a path using A*
+        pathlist = self.path_planner.astar((self.player_manager.x, self.player_manager.y), random_platform_coord)
+        for mid_coord, method in pathlist:
+            pass
+        # End inter-platform movement
 
         # Other buffs
         self.player_manager.holy_symbol()
@@ -281,7 +291,4 @@ class MacroControllerV2:
         if self.log_queue:
             self.log_queue.put(["stopped", None])
         self.keyhandler.reset()
-
-
-
 

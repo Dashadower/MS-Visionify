@@ -115,80 +115,24 @@ class PlayerController:
                 player_coords_y = self.y
         self.x, self.y = player_coords_x, player_coords_y
 
-    def calculate_jump_curve(self, coord_x, start_x, start_y, orient):
-        """Quadratic jump curve simulation
-        :param coord_x : x input in function f(x)
-        :param start_x : start x coordinate of jump
-        :param start_y : start y coordinate of jump
-        :param orient : direction of jump, either jmpr or jmpl"""
-        a = 0.3
-        if orient == "jmpr":
-            y = a * ((coord_x - (start_x+self.horizontal_jump_distance/2)) ** 2) + start_y - self.horizontal_jump_height
-            return round(y, 2)
-        elif orient == "jmpl":
-            y = a * ((coord_x - (start_x-self.horizontal_jump_distance/2)) ** 2) + start_y - self.horizontal_jump_height
-            return round(y, 2)
-
-        return 0
-
-    def quadratic_platform_jump(self, goal_platform, jmp_range_start, jmp_range_end, **kwargs):
+    def jump_double_curve(self, start_x, start_y, current_x):
         """
-        Use quadratic to simulate jump and determine x coordinate required to move
-        :param goal_coord : tuple((x,y), (x,y)) of goal platform start and end
-        :param jmp_range_start : tuple(x,y) of minimum movable current platform
-        :param jmp_range_end : tuple(x,y) of maximum movable current platform"""
-
-        # to determine which end we are going to use as goal coordinate, calculate SED of each point
-        d1 = (self.x-goal_platform[0][0]) ** 2
-        d2 = (self.x-goal_platform[1][0]) ** 2
-        if d1 < d2:
-            goal_x, goal_y = goal_platform[0][0], goal_platform[0][1]
-        else:
-            goal_x, goal_y = goal_platform[1][0], goal_platform[1][1]
-
-        min_platform_x = min(jmp_range_start, jmp_range_end)
-        max_platform_x = max(jmp_range_start, jmp_range_end)
-
-        if goal_x - self.x > 0:
-            mode = "jmpr"
-        elif goal_x - self.x < 0:
-            mode = "jmpl"
-
-        minimum_jmp_x = None
-        print("quadratic: current location: %d %d"%(self.x, self.y), "destination %d %d"%(goal_x, goal_y))
-        if mode == "jmpl":
-            for x in range(self.x-1, min_platform_x, -1):
-                platform_function_height = int(self.calculate_jump_curve(goal_x, x, self.y, mode))
-                print("y coord at x coord %d: %d"%(x, platform_function_height))
-                if platform_function_height <= goal_y and platform_function_height != 0 and platform_function_height > 0:
-                    minimum_jmp_x = x
-                    break
-        elif mode == "jmpr":
-            for x in range(self.x+1, max_platform_x):
-                platform_function_height = int(self.calculate_jump_curve(goal_x, x, self.y, mode))
-                print("y coord at x coord %d: %d" % (x, platform_function_height))
-                if platform_function_height <= goal_y  and platform_function_height != 0 and platform_function_height > 0:
-                    minimum_jmp_x = x
-                    break
-        if not minimum_jmp_x:
-            print("no solution found")
-        else:
-            print("quadratic: move from %d to %d"%(self.x, int(minimum_jmp_x)))
-            self.horizontal_move_goal(minimum_jmp_x)
-
-    def linear_glide(self, x, jmp_x, jmp_y, jmp_height, slope):
+        Calculates the height at horizontal double jump starting from(start_x, start_y) at x coord current_x
+        :param start_x: start x coord
+        :param start_y: start y coord
+        :param current_x: x of coordinate to calculate height
+        :return: height at current_x
         """
-        Calculates glide y coordinate at x coordinate x with input constants
-        :param x: Desired X coordinate to get Y coordinates
-        :param jmp_x: Origin of glide X coordinates
-        :param jmp_y: Origin of glide Y coordinates
-        :param jmp_height: Standard single jump height
-        :param slope: Glide coefficient. Recommended: -0.2 for left, 0.2 for right
-        :return: Y coordinate
-        """
-        b = jmp_y - jmp_height - slope * jmp_x
-        y = slope * x + b
-        return y
+        slope = 0.05
+        x_jump_range = 10
+        y_jump_height = 1.4
+        max_coord_x = (start_x*2 + x_jump_range)/2
+        max_coord_y = start_y - y_jump_height
+        if max_coord_y <= 0:
+            return 0
+
+        y = slope * (current_x - max_coord_x)**2 + max_coord_y
+        return max(0, y)
 
     def distance(self, coord1, coord2):
         return math.sqrt((coord1[0]-coord2[0])**2 + (coord1[1]-coord2[1])**2)

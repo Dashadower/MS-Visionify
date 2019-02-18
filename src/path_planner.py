@@ -72,7 +72,7 @@ class PathPlanner:
 
         self.astar_open_vals = []
         for y in range(len(self.map_grid)):
-            self.astar_open_vals.append([0 for x in range(len(self.map_grid[0]))])
+            self.astar_open_vals.append([0 for x in range(len(self.map_grid[0])+1)])
 
         open_list = set()
         closed_set = set()
@@ -115,9 +115,10 @@ class PathPlanner:
                 return abs(y1-y2)# * 1.5
             elif y1 > y2:
                 return abs(y1-y2)# * 1.2
+
     def astar_h(self, x1, y1, x2, y2):
-        #return math.sqrt((x1-x2)**2 + (y1-y2)**2)
-        return abs(x1-x2) + abs(y1-y2)
+        return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+        #return abs(x1-x2) + abs(y1-y2)
 
     def doublejump_cost(self, y1, y2):
         """
@@ -138,6 +139,28 @@ class PathPlanner:
         if t >= 0.45:
             t = 0.45
         return t
+
+    def jump_double_curve(self, start_x, start_y, current_x):
+        """
+        Calculates the height at horizontal double jump starting from(start_x, start_y) at x coord current_x
+        :param start_x: start x coord
+        :param start_y: start y coord
+        :param current_x: x of coordinate to calculate height
+        :return: height at current_x
+        """
+        slope = 0.05
+        x_jump_range = 10 if current_x > start_x else -10
+        y_jump_height = 1.4
+        max_coord_x = (start_x*2 + x_jump_range)/2
+        max_coord_y = start_y - y_jump_height
+        if max_coord_y <= 0:
+            return 0
+
+        y = slope * (current_x - max_coord_x)**2 + max_coord_y
+        return max(0, y)
+
+    def distance(self, coord1, coord2):
+        return math.sqrt((coord1[0]-coord2[0])**2 + (coord1[1]-coord2[1])**2)
 
     def astar_find_proximity_pixels(self, x, y, goal_coordinate):
         """
@@ -235,6 +258,22 @@ class PathPlanner:
 
             drop_distance += 1
 
+        # check if doublejump leads us to another platform
+        jump_height = 6
+        for x_increment in [1, -1]:
+            while True:
+                if x + x_increment >= self.map_width-1 or x+x_increment == 0:
+                    break
+                jump_y = max(0, int(self.jump_double_curve(x, y-jump_height, x+x_increment)))
+                if jump_y >= self.map_height-1:
+                    break
+                if self.map_grid[jump_y][x+x_increment] == 1:
+                    return_list.append(((x+x_increment, jump_y), "horjmp"))
+                    break
+                if x_increment < 0:
+                    x_increment -= 1
+                else:
+                    x_increment += 1
         return return_list
 
 
