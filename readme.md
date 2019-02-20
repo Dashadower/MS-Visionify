@@ -28,3 +28,8 @@ with the game.
 *Commercial usage of the following code is free of will, but discouraged.* This project was not intended to be commercialized, and was
 only for research purposes and proof-of-concept. Any malicious uses of the following code can result in
 Nexon reenforcing anti-bot features which will render this bot and future improvements useless.
+
+### To Nexon:
+If you have issues with the following code being developed/distributed, please contact me so we can get the issues resolved.
+
+This software is in no way associated with or endorsed by Nexon or any subsidiaries.
