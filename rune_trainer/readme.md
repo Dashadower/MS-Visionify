@@ -27,3 +27,8 @@ Info on scripts on this dir:
 4. Run `move_traindata2testpy` This script will move an equal amount of images from `cropped/traindata` to `cropped/testdata`. 80 to 20
     is a good amount
 5. Run `trainer_keras.py`. This will start the training.
+
+## *Note on dataset*
+
+I did not include the dataset I have personally used, to prevent malicious users getting stuff without effort. If you would like
+to request the dataset, please personally contact me.
