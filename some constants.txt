@@ -1,4 +1,0 @@
-Minimap info
-No matter the resolution, minimap position is same(tested on 1366x and 800x) HOWEVER, THE SIZE CHANGES WITH MAP
-RGB Minimap player marker: (255, 221, 68)
-RGB Minimap other player markers: (255,0,0)
