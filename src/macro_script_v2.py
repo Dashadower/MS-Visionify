@@ -3,8 +3,8 @@ import player_controller as pc
 import screen_processor as sp
 import terrain_analyzer as ta
 import directinput_constants as dc
+import macro_script
 import rune_solver as rs
-from path_planner import PathPlanner
 import logging, math, time, random
 
 class CustomLogger:
@@ -14,112 +14,20 @@ class CustomLogger:
 
     def debug(self, *args):
         self.logger_obj.debug(" ".join([str(x) for x in args]))
-        self.logger_queue.put(("log", " ".join([str(x) for x in args])))
+        if self.logger_queue:
+            self.logger_queue.put(("log", " ".join([str(x) for x in args])))
 
     def exception(self, *args):
         self.logger_obj.exception(" ".join([str(x) for x in args]))
-        self.logger_queue.put(("log", " ".join([str(x) for x in args])))
+        if self.logger_queue:
+            self.logger_queue.put(("log", " ".join([str(x) for x in args])))
 
-class MacroControllerV2:
+class MacroControllerV2(macro_script.MacroController):
     """
     This is a new port of MacroController from macro_script with improved pathing. MacroController Used PlatforScan,
     which is an tree search algorithm I implemented, and works at indivisual platform level. However, V2 uses A* path
     finding and works at pixel level, which allows more randomized and fluent moving.
     """
-    def __init__(self, keymap=km.DEFAULT_KEY_MAP, log_queue=None):
-
-        #sys.excepthook = self.exception_hook
-
-        self.screen_capturer = sp.MapleScreenCapturer()
-        logger = logging.getLogger("MacroControllerV2")
-        logger.setLevel(logging.DEBUG)
-        self.log_queue = log_queue
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-        fh = logging.FileHandler("logging.log")
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-
-        self.logger = CustomLogger(logger, self.log_queue)
-        self.logger.debug("MacroControllerV2 init")
-        self.screen_processor = sp.StaticImageProcessor(self.screen_capturer)
-        self.terrain_analyzer = ta.PathAnalyzer()
-        self.keyhandler = km.KeyboardInputManager()
-        self.player_manager = pc.PlayerController(self.keyhandler, self.screen_processor, keymap)
-
-
-        self.last_platform_hash = None
-        self.current_platform_hash = None
-        self.goal_platform_hash = None
-
-        self.platform_error = 3  # If y value is same as a platform and within 3 pixels of platform border, consider to be on said platform
-
-        self.rune_model_path = r"arrow_classifier_keras_gray.h5"
-        self.rune_solver = rs.RuneDetector(self.rune_model_path, screen_capturer=self.screen_capturer, key_mgr=self.keyhandler)
-        self.rune_platform_offset = 2
-
-        self.loop_count = 0  # How many loops did we loop over?
-        self.reset_navmap_loop_count = 10  # every x times reset navigation map, scrambling pathing
-        self.navmap_reset_type = 1  # navigation map reset type. 1 for random, -1 for just reset. GETS ALTERNATED
-
-        self.walk_probability = 5
-        # This sets random.randint(1, walk_probability) to decide of moonlight slash should just walk instead of glide
-        # Probability of walking is (1/walk_probability) * 100
-
-        self.restrict_moonlight_slash_probability = 5
-
-        self.platform_fail_loops = 0
-        # How many loops passed and we are not on a platform?
-
-        self.platform_fail_loop_threshold = 10
-        # If self.platform_fail_loops is greater than threshold, run unstick()
-
-        self.path_planner = PathPlanner()
-
-        self.logger.debug("MacroControllerV2 init finished")
-
-    def load_and_process_platform_map(self, path):
-        self.terrain_analyzer.load(path)
-        x, y, w, h = self.terrain_analyzer.generate_solution_dict()
-        self.logger.debug("Loaded platform data %s"%(path))
-        self.path_planner.generate_map_grid(self.terrain_analyzer.platforms, self.terrain_analyzer.oneway_platforms, w, h)
-        self.logger.debug("Generated map grid for path planner")
-
-    def distance(self, x1, y1, x2, y2):
-        return math.sqrt((x1-x2)**2 + (y1-y2)**2)
-
-    def find_current_platform(self):
-        current_platform_hash = None
-
-        for key, platform in self.terrain_analyzer.oneway_platforms.items():
-            if self.player_manager.y >= min(platform.start_y, platform.end_y) and \
-                    self.player_manager.y <= max(platform.start_y, platform.end_y) and \
-                    self.player_manager.x >= platform.start_x and \
-                    self.player_manager.x <= platform.end_x:
-                current_platform_hash = platform.hash
-                break
-
-        for key, platform in self.terrain_analyzer.platforms.items():
-            if self.player_manager.y == platform.start_y and \
-                    self.player_manager.x >= platform.start_x and \
-                    self.player_manager.x <= platform.end_x:
-                current_platform_hash = platform.hash
-                break
-
-        #  Add additional check to take into account imperfect platform coordinates
-        for key, platform in self.terrain_analyzer.platforms.items():
-            if self.player_manager.y == platform.start_y and \
-                    self.player_manager.x >= platform.start_x - self.platform_error and \
-                    self.player_manager.x <= platform.end_x + self.platform_error:
-                current_platform_hash = platform.hash
-                break
-
-        if current_platform_hash:
-            return current_platform_hash
-        else:
-            return 0
-
     def loop(self):
         """
         Main event loop for Macro
@@ -253,7 +161,7 @@ class MacroControllerV2:
         dest_platform = self.terrain_analyzer.platforms[dest_platform_hash]
         random_platform_coord = (random.randint(dest_platform.start_x, dest_platform_hash.end_x), dest_platform.start_y)
         # Once we have selected the platform to move, we can generate a path using A*
-        pathlist = self.path_planner.astar((self.player_manager.x, self.player_manager.y), random_platform_coord)
+        pathlist = self.terrain_analyzer.astar_pathfind((self.player_manager.x, self.player_manager.y), random_platform_coord)
         for mid_coord, method in pathlist:
             pass
         # End inter-platform movement
@@ -268,27 +176,4 @@ class MacroControllerV2:
         self.loop_count += 1
         return 0
 
-
-    def unstick(self):
-        """
-        Run when script can't find which platform we are at.
-        Solution: try random stuff to attempt it to reposition it self
-        :return: None
-        """
-        #Method one: get off ladder
-        self.player_manager.jumpr()
-        time.sleep(2)
-        if self.find_current_platform():
-            return 0
-        self.player_manager.dbljump_max()
-        time.sleep(2)
-        if self.find_current_platform():
-            return 0
-
-
-    def abort(self):
-        self.logger.debug("aborted")
-        if self.log_queue:
-            self.log_queue.put(["stopped", None])
-        self.keyhandler.reset()
 

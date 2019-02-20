@@ -3,7 +3,6 @@ import tkinter as tk
 sys.path.append("../src")
 sys.path.append("C:\\Users\\tttll\\PycharmProjects\\MacroSTory")
 from terrain_analyzer import PathAnalyzer
-from path_planner import PathPlanner
 pathextractor = PathAnalyzer()
 
 minimap_roi = pathextractor.load("풍화된_기쁨과_분노의_땅.platform")
@@ -136,10 +135,5 @@ render()
                 cv.create_rectangle(cd[0] * tile_size, cd[1] * tile_size, (cd[0] + 1) * tile_size,
                                     (cd[1] + 1) * tile_size, fill="black")"""
 cv.bind("<Button-1>", onleftclick)
-print(pathextractor.astar_map_grid)
-
 
 root.mainloop()
-
-
-

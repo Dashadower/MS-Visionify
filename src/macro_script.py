@@ -4,7 +4,7 @@ import screen_processor as sp
 import terrain_analyzer as ta
 import directinput_constants as dc
 import rune_solver as rs
-import logging, math, time, random, sys
+import logging, math, time, random
 
 class CustomLogger:
     def __init__(self, logger_obj, logger_queue):
@@ -13,19 +13,21 @@ class CustomLogger:
 
     def debug(self, *args):
         self.logger_obj.debug(" ".join([str(x) for x in args]))
-        self.logger_queue.put(("log", " ".join([str(x) for x in args])))
+        if self.logger_queue:
+            self.logger_queue.put(("log", " ".join([str(x) for x in args])))
 
     def exception(self, *args):
         self.logger_obj.exception(" ".join([str(x) for x in args]))
-        self.logger_queue.put(("log", " ".join([str(x) for x in args])))
+        if self.logger_queue:
+            self.logger_queue.put(("log", " ".join([str(x) for x in args])))
 
 class MacroController:
-    def __init__(self, keymap=km.DEFAULT_KEY_MAP, log_queue=None):
+    def __init__(self, keymap=km.DEFAULT_KEY_MAP, rune_model_dir=r"arrow_classifier_keras_gray.h5", log_queue=None):
 
         #sys.excepthook = self.exception_hook
 
         self.screen_capturer = sp.MapleScreenCapturer()
-        logger = logging.getLogger("MacroController")
+        logger = logging.getLogger(self.__class__.__name__)
         logger.setLevel(logging.DEBUG)
         self.log_queue = log_queue
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -36,7 +38,7 @@ class MacroController:
         logger.addHandler(fh)
 
         self.logger = CustomLogger(logger, self.log_queue)
-        self.logger.debug("MacroController init")
+        self.logger.debug("%s init"%self.__class__.__name__)
         self.screen_processor = sp.StaticImageProcessor(self.screen_capturer)
         self.terrain_analyzer = ta.PathAnalyzer()
         self.keyhandler = km.KeyboardInputManager()
@@ -49,7 +51,7 @@ class MacroController:
 
         self.platform_error = 3  # If y value is same as a platform and within 3 pixels of platform border, consider to be on said platform
 
-        self.rune_model_path = r"arrow_classifier_keras_gray.h5"
+        self.rune_model_path = rune_model_dir
         self.rune_solver = rs.RuneDetector(self.rune_model_path, screen_capturer=self.screen_capturer, key_mgr=self.keyhandler)
         self.rune_platform_offset = 2
 
@@ -69,11 +71,16 @@ class MacroController:
         self.platform_fail_loop_threshold = 10
         # If self.platform_fail_loops is greater than threshold, run unstick()
 
-        self.logger.debug("MacroController init finished")
+        self.logger.debug("%s init finished"%self.__class__.__name__)
+
     def load_and_process_platform_map(self, path):
-        self.terrain_analyzer.load(path)
+        retval = self.terrain_analyzer.load(path)
         self.terrain_analyzer.generate_solution_dict()
-        self.logger.debug("Loaded platform data %s"%(path))
+        if retval != 0:
+            self.logger.debug("Loaded platform data %s"%(path))
+        else:
+            self.logger.debug("Failed to load platform data %s, terrain_analyzer.load returned 0"%(path))
+        return retval
 
     def distance(self, x1, y1, x2, y2):
         return math.sqrt((x1-x2)**2 + (y1-y2)**2)

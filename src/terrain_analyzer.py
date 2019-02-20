@@ -100,6 +100,7 @@ class PathAnalyzer:
         self.astar_map_grid = []  # maap grid representation for a star graph search. reinitialized  on every call
         self.astar_open_val_grid = []  # 2d array to keep track of "open" values in a star search.
         self.astar_minimap_rect = []  # minimap rect (x,y,w,h) for use in generating astar data
+
     def save(self, filename="mapdata.platform", minimap_roi = None):
         """Save platforms, oneway_platforms, ladders, minimap_roi to a file
         :param filename: path to save file
@@ -110,8 +111,10 @@ class PathAnalyzer:
     def load(self, filename="mapdata.platform"):
         """Open a map data file and load data from file. Also sets class variables platform, oneway_platform, and minimap.
         :param filename: Plath to map data file
-        :return boundingRect tuple of minimap as stored on file (defaults to (x, y, w, h)"""
-        if os.path.exists(filename):
+        :return boundingRect tuple of minimap as stored on file (defaults to (x, y, w, h) if file is valid else 0"""
+        if not self.verify_data_file(filename):
+            return 0
+        else:
             with open(filename, "rb") as f:
                 data = pickle.load(f)
                 self.platforms = data["platforms"]
@@ -119,6 +122,7 @@ class PathAnalyzer:
                 minimap_coords = data["minimap"]
                 self.astar_minimap_rect = minimap_coords
 
+            self.generate_solution_dict()
             self.astar_map_grid = []
             self.astar_open_val_grid = []
             map_width, map_height = self.astar_minimap_rect[2], self.astar_minimap_rect[3]
@@ -137,7 +141,7 @@ class PathAnalyzer:
         """
         Verify a platform file to see if it is in correct format
         :param filename: file path
-        :return: 0 if valid, 1 if corrupt or errored
+        :return: minimap coords if valid, 0 if corrupt or errored
         """
         if os.path.exists(filename):
             with open(filename, "rb") as f:
@@ -147,10 +151,10 @@ class PathAnalyzer:
                     oneway_platforms = data["oneway"]
                     minimap_coords = data["minimap"]
                 except:
-                    return 1
+                    return 0
             return minimap_coords
         else:
-            return 1
+            return 0
 
 
     def hash(self, data):
@@ -168,7 +172,7 @@ class PathAnalyzer:
         Simple BFS algorithm to find a path from start platform to goal platform.
         :param start_hash: hash of starting platform
         :param goal_hash:  hash of goal platform
-        :return: list, in order of solutions to reach goal
+        :return: list, in order of solutions to reach goal, 0 if no path
         """
 
         try:
@@ -201,14 +205,14 @@ class PathAnalyzer:
                     bfs_queue.append([solution, cv])
 
         if calculated_paths:
-            print(calculated_paths)
             return sorted(calculated_paths, key=lambda x: len(x))[0]
         else:
             return 0
 
 
     def generate_solution_dict(self):
-        """Generates a solution dictionary, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]"""
+        """Generates a solution dictionary, which is a dictionary with platform as keys and a dictionary of a list[strategy, 0]
+        This function is now called automatically within load()"""
         for key, platform in self.platforms.items():
             platform.last_visit = 0
             self.calculate_interplatform_solutions(key)
@@ -489,7 +493,7 @@ class PathAnalyzer:
         :param goal_x: x coordinate of goal position
         :param goal_y: y coordinate of goal position
         :param method: find available moves method string
-        :return:
+        :return: g value
         """
         if current_y == goal_y:
             return abs(current_x-goal_x)
@@ -497,6 +501,8 @@ class PathAnalyzer:
             if current_y < goal_y:
                 if method == "drop":
                     return abs(current_y - goal_y) * 0.8
+                if method == "horjmp":
+                    return abs(current_y - goal_y) * 5
                 return abs(current_y-goal_y)* 1.5
             elif current_y > goal_y:
                 if method == "horjmp":
@@ -524,17 +530,13 @@ class PathAnalyzer:
             while contiunue_check:
                 if x + x_increment == 0:
                     return_list.append(((x + x_increment - 1, y), "r" if x_increment > 0 else "l"))
-                    print("break1")
                     break
                 if (x + x_increment, y) == goal_coordinate:
                     return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
-                    print("break2")
                     break
                 if x+x_increment > map_width:
                     return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
-                    print("break3")
                     break
-                print(map_width, map_height, x+x_increment, y)
                 if self.astar_map_grid[y][x + x_increment] == 1:
                     drop_distance = 1
                     while y+drop_distance <= map_height:
@@ -554,7 +556,6 @@ class PathAnalyzer:
                 else:
                     if x_increment != 1:
                         return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
-                    print("break4", x+x_increment, y, self.astar_map_grid[y][x + x_increment])
                     break
 
                 if x_increment < 0:
@@ -579,7 +580,7 @@ class PathAnalyzer:
             drop_distance += 1
 
         # check if horizontal doublejump leads us to another platform
-        jump_height = 6
+        """jump_height = 6
         for xc in [3, -3]:
             dvl = []
             while True:
@@ -608,7 +609,7 @@ class PathAnalyzer:
                     xc -= 1
                 else:
                     xc += 1
-                #return_list.append((dvl, "dbg"))
+                #return_list.append((dvl, "dbg"))"""
         return return_list
 
     def astar_jump_double_curve(self, start_x, start_y, current_x):
