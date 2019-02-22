@@ -1,4 +1,4 @@
-# MacroStory: OpenCV based KMS MapleStory automation on Python3
+# MS-Visionify: OpenCV based KMS MapleStory automation on Python3
 This projects aims to create a intelligent automated bot for KMS MapleStory with the character Demon Avenger. 
 The bot uses OpenCV to find features from the game screen and use DirectInput emulation to interact
 with the game.
