@@ -215,7 +215,8 @@ class MainScreen(tk.Frame):
 
         for x in range(5):
             self.macro_info_frame.grid_columnconfigure(x, weight=1)
-        self.log("MS-rbw NoAuth", VERSION)
+        self.log("MS-Visionify NoAuth", VERSION)
+        self.log("This version is the GPL compliant version of MS-V")
         self.log("해당 프로그램 사용시 발생하는 모든 제재사항 및 불이익은 사용자에게 있습니다")
 
         self.master.protocol("WM_DELETE_WINDOW", self.onClose)
