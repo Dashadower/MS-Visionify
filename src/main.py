@@ -34,8 +34,6 @@ def destroy_child_widgets(parent):
         child.destroy()
 
 
-
-
 def macro_loop(input_queue, output_queue):
     logger = logging.getLogger("macro_loop")
     logger.setLevel(logging.DEBUG)

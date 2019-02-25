@@ -422,7 +422,7 @@ class PathAnalyzer:
                     back_point_distance = math.sqrt((platform.end_x-other_platform.start_x)**2 + (platform.end_y-other_platform.start_y)**2)
                     if back_point_distance <= self.jump_range:
                         # We can jump fomr the right end of the platform to goal platform
-                        solution = {"hash":key, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr", "visited" : False}
+                        #solution = {"hash":key, "lower_bound":(platform.end_x, platform.end_y), "upper_bound":(platform.end_x, platform.end_y), "method":"jmpr", "visited" : False}
                         solution = Solution(platform.hash, key, (platform.end_x, platform.end_y), (platform.end_x, platform.end_y), METHOD_JUMPR, False)
                         platform.solutions.append(solution)
 
@@ -464,7 +464,7 @@ class PathAnalyzer:
             selection = min(open_list, key=lambda x: x.g + x.h)
 
             if selection.x == goal_coords[0] and selection.y == goal_coords[1]:
-                return selection.path
+                return self.astar_optimize_path(selection.path)
 
             open_list.remove(selection)
             open_set.remove((selection.x, selection.y))
@@ -485,6 +485,37 @@ class PathAnalyzer:
                 if self.astar_open_val_grid[coordinate[1]][coordinate[0]] > successor_g:
                     self.astar_open_val_grid[coordinate[1]][coordinate[0]] = successor_g
 
+    def astar_optimize_path(self, path):
+        """
+        Optimizes astar generated paths. This will take horizontal movement methods and combine them into one if on
+        the same height.
+        :param path: A* path list
+        :return: optimized A* path list
+        """
+        print("input")
+        print(path)
+        new_path = []
+        current_index = 0
+        while current_index <= len(path)-1:
+            c_coords, c_method = path[current_index]
+            if c_method == METHOD_MOVEL or c_method == METHOD_MOVER:
+                increment = 0  # current_index + increment of intem we are sure needs to be optimized
+                while current_index+increment < len(path)-1:
+                    n_coords, n_method = path[current_index+increment+1]
+                    if n_method == c_method and n_coords[1] == c_coords[1]:
+                        increment += 1
+                    else:
+                        new_path.append(path[current_index+increment])
+                        break
+                current_index += increment+1
+            else:
+                new_path.append(path[current_index])
+                current_index += 1
+
+        print("output")
+        print(new_path)
+        return new_path
+
     def astar_g(self, current_x, current_y, goal_x, goal_y, method):
         """
         generates A* g value
@@ -499,7 +530,7 @@ class PathAnalyzer:
             return abs(current_x-goal_x)
         else:
             if current_y < goal_y:
-                if method == "drop":
+                if method == METHOD_DROP:
                     return abs(current_y - goal_y) * 0.8
                 if method == "horjmp":
                     return abs(current_y - goal_y) * 5
@@ -529,19 +560,19 @@ class PathAnalyzer:
             contiunue_check = True
             while contiunue_check:
                 if x + x_increment == 0:
-                    return_list.append(((x + x_increment - 1, y), "r" if x_increment > 0 else "l"))
+                    return_list.append(((x + x_increment - 1, y), METHOD_MOVER if x_increment > 0 else "l"))
                     break
                 if (x + x_increment, y) == goal_coordinate:
-                    return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
+                    return_list.append(((x + x_increment, y), METHOD_MOVER if x_increment > 0 else METHOD_MOVEL))
                     break
                 if x+x_increment > map_width:
-                    return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
+                    return_list.append(((x + x_increment, y), METHOD_MOVER if x_increment > 0 else METHOD_MOVEL))
                     break
                 if self.astar_map_grid[y][x + x_increment] == 1:
                     drop_distance = 1
                     while y+drop_distance <= map_height:
                         if self.astar_map_grid[y + drop_distance][x] == 1:
-                            return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
+                            return_list.append(((x + x_increment, y), METHOD_MOVER if x_increment > 0 else METHOD_MOVEL))
                             contiunue_check = False
                             break
                         drop_distance += 1
@@ -550,12 +581,12 @@ class PathAnalyzer:
                         if y - jmpheight <= 0:
                             break
                         if self.astar_map_grid[y - jmpheight][x + x_increment] == 1:
-                            return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
+                            return_list.append(((x + x_increment, y), METHOD_MOVER if x_increment > 0 else METHOD_MOVEL))
                             contiunue_check = False
                             break
                 else:
                     if x_increment != 1:
-                        return_list.append(((x + x_increment, y), "r" if x_increment > 0 else "l"))
+                        return_list.append(((x + x_increment, y), METHOD_MOVER if x_increment > 0 else METHOD_MOVEL))
                     break
 
                 if x_increment < 0:
@@ -567,49 +598,21 @@ class PathAnalyzer:
             if y - jmpheight == 0:
                 break
             if self.astar_map_grid[y - jmpheight][x] == 1:
-                return_list.append(((x, y - jmpheight), "dbljmp"))
+                return_list.append(((x, y - jmpheight), METHOD_DBLJMP))
 
         drop_distance = 1
         while True:
             if y + drop_distance > map_height:
                 break
             if self.astar_map_grid[y + drop_distance][x] == 1:
-                return_list.append(((x, y + drop_distance), "drop"))
+                return_list.append(((x, y + drop_distance), METHOD_DROP))
                 break
 
             drop_distance += 1
 
         # check if horizontal doublejump leads us to another platform
-        """jump_height = 6
-        for xc in [3, -3]:
-            dvl = []
-            while True:
-                x_increment = int(xc)
-                print(x_increment)
-                if x + x_increment > map_width or x + x_increment <= 0:
-                    break
-                jump_y = max(0, int(self.astar_jump_double_curve(x, y - jump_height, x + x_increment)))
-                dvl.append([x+x_increment, jump_y])
-                if jump_y > map_height:
-                    break
-                if self.astar_map_grid[jump_y][x + x_increment] == 1:
-                    if abs(x_increment) <= 30 and jump_y != y:
-                        return_list.append(((x + x_increment, jump_y), "horjmp"))
-                    break
+        jump_height = 6
 
-                elif self.astar_map_grid[jump_y-1][x + x_increment] == 1:
-                    if abs(x_increment) <= 30 and jump_y-1 != y:
-                        return_list.append(((x + x_increment, jump_y-1), "horjmp"))
-                    break
-                elif self.astar_map_grid[jump_y+1][x + x_increment] == 1:
-                    if abs(x_increment) <= 30 and jump_y+1 != y:
-                        return_list.append(((x + x_increment, jump_y+1), "horjmp"))
-                    break
-                if xc < 0:
-                    xc -= 1
-                else:
-                    xc += 1
-                #return_list.append((dvl, "dbg"))"""
         return return_list
 
     def astar_jump_double_curve(self, start_x, start_y, current_x):
@@ -629,6 +632,23 @@ class PathAnalyzer:
             return 0
         y = slope * (current_x - max_coord_x) ** 2 + max_coord_y
         return max(0, y)
+
+    def calculate_vertical_doublejump_delay(self, y1, y2):
+        """
+        Calcuates the delay needed to double jump from height y1 to y1
+        :param y1: y coord1
+        :param y2: y coord2
+        :return: float delay in second(s) needed
+        """
+        height_delta = abs(y1-y2)
+
+        t = round(-(height_delta-41.5)/76, 2)
+        if t < 0.15:
+            return 0.15
+        elif t > 0.45:
+            return 0.45
+        else:
+            return t
 
     def reset(self):
         """

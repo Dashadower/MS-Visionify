@@ -136,4 +136,8 @@ render()
                                     (cd[1] + 1) * tile_size, fill="black")"""
 cv.bind("<Button-1>", onleftclick)
 
+
+
+
+
 root.mainloop()

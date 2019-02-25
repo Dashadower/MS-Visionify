@@ -3,6 +3,7 @@ sys.path.append("../src")
 sys.path.append("C:\\Users\\tttll\\PycharmProjects\\MacroSTory")
 from terrain_analyzer import PathAnalyzer
 pathextractor = PathAnalyzer()
+
 pathextractor.load("풍화된_기쁨과_분노의_땅.platform")
 print(__file__)
 print(pathextractor.platforms)

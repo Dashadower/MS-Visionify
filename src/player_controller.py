@@ -414,7 +414,7 @@ class PlayerController:
         time.sleep(delay)
         self.key_mgr.single_press(DIK_UP)
         time.sleep(0.01)
-        self.key_mgr._direct_release(DIK_UP)
+        self.key_mgr.single_press(DIK_UP)
 
     def jumpl(self):
         """Blocking call"""
@@ -590,3 +590,4 @@ class PlayerController:
         if random.choice([1,-1]) == -1:
             d *= -1
         return d
+

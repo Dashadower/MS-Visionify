@@ -23,6 +23,7 @@ with the game.
 * tensorflow
 * Keras
 * pythoncom, pyHook (optional, for debugging)
+* matplotlib (optional, for debugging)
 
 ### Note of regard to code users
 *Commercial usage of the following code is free of will, but discouraged.* This project was not intended to be commercialized, and was

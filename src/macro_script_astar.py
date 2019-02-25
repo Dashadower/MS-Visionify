@@ -1,10 +1,7 @@
-import keystate_manager as km
-import player_controller as pc
-import screen_processor as sp
 import terrain_analyzer as ta
+from terrain_analyzer import METHOD_DROP, METHOD_MOVEL, METHOD_MOVER, METHOD_DBLJMP, METHOD_DBLJMP_HALF, METHOD_DBLJMP_MAX
 import directinput_constants as dc
 import macro_script
-import rune_solver as rs
 import logging, math, time, random
 
 class CustomLogger:
@@ -45,7 +42,7 @@ class MacroControllerAStar(macro_script.MacroController):
             self.player_manager.skill_counter_time = time.time()
         if time.time() - self.player_manager.skill_counter_time > 60:
             print("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
-            self.logger.debug("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
+            self.logger.debug("skills casted in duration %d: %d skill/s: %f skill/s"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
             self.player_manager.skill_cast_counter = 0
             self.player_manager.skill_counter_time = time.time()
         if not self.screen_capturer.ms_get_screen_hwnd():
@@ -55,7 +52,6 @@ class MacroControllerAStar(macro_script.MacroController):
 
         # Update Screen
         self.screen_processor.update_image(set_focus=False)
-
         # Update Constants
         player_minimap_pos = self.screen_processor.find_player_minimap_marker()
         if not player_minimap_pos:
@@ -159,11 +155,22 @@ class MacroControllerAStar(macro_script.MacroController):
         # Start inter-platform movement
         dest_platform_hash = random.choice([key for key in self.terrain_analyzer.platforms.keys() if key != current_platform_hash])
         dest_platform = self.terrain_analyzer.platforms[dest_platform_hash]
-        random_platform_coord = (random.randint(dest_platform.start_x, dest_platform_hash.end_x), dest_platform.start_y)
+        random_platform_coord = (random.randint(dest_platform.start_x, dest_platform.end_x), dest_platform.start_y)
         # Once we have selected the platform to move, we can generate a path using A*
         pathlist = self.terrain_analyzer.astar_pathfind((self.player_manager.x, self.player_manager.y), random_platform_coord)
+        print(pathlist)
         for mid_coord, method in pathlist:
+            self.player_manager.update()
             print(mid_coord, method)
+            if method == METHOD_MOVER or method == METHOD_MOVEL:
+                self.player_manager.optimized_horizontal_move(mid_coord[0])
+            elif method == METHOD_DBLJMP:
+                interdelay = self.terrain_analyzer.calculate_vertical_doublejump_delay(self.player_manager.y, mid_coord[1])
+                print(interdelay)
+                self.player_manager.dbljump_timed(interdelay)
+            elif method == METHOD_DROP:
+                self.player_manager.drop()
+            time.sleep(1)
         # End inter-platform movement
 
         # Other buffs
