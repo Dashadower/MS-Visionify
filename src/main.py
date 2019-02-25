@@ -21,7 +21,6 @@ try:
     from keystate_manager import DEFAULT_KEY_MAP
     from directinput_constants import keysym_map
     from macro_script import MacroController
-    import authentication
 except:
     default_logger.exception("error during import")
 
@@ -179,8 +178,7 @@ class MainScreen(tk.Frame):
 
         self.keymap = None
 
-        self.auth_info_frame = tk.Frame(self, borderwidth=2, relief=GROOVE)
-        self.auth_info_frame.pack(side=TOP, anchor=NW)
+
 
         self.macro_pid = 0
         self.macro_process = None
@@ -189,9 +187,6 @@ class MainScreen(tk.Frame):
 
         self.macro_pid_infotext = tk.StringVar()
         self.macro_pid_infotext.set("실행되지 않음")
-
-        tk.Label(self.auth_info_frame, text="아이디: %s"%(self.user_id)).pack(side=TOP)
-        tk.Label(self.auth_info_frame, text="만료시간: %s"%(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.expiration_time)))).pack(side=BOTTOM)
 
         self.log_text_area = ScrolledText(self, height = 10, width = 20)
         self.log_text_area.pack(side=BOTTOM, expand=YES, fill=BOTH)
@@ -220,13 +215,22 @@ class MainScreen(tk.Frame):
 
         for x in range(5):
             self.macro_info_frame.grid_columnconfigure(x, weight=1)
-        self.log("MS-rbw", VERSION)
+        self.log("MS-rbw NoAuth", VERSION)
         self.log("해당 프로그램 사용시 발생하는 모든 제재사항 및 불이익은 사용자에게 있습니다")
 
         self.master.protocol("WM_DELETE_WINDOW", self.onClose)
-        self.after(600000, self.check_license)
         self.after(500, self.toggle_macro_process)
         self.after(1000, self.check_input_queue)
+
+    def onClose(self):
+        if self.macro_process:
+            try:
+                self.macro_process_out_queue.put("stop")
+                os.kill(self.macro_pid, signal.SIGTERM)
+            except:
+                pass
+
+        sys.exit()
 
     def check_input_queue(self):
         while not self.macro_process_in_queue.empty():
@@ -249,26 +253,6 @@ class MainScreen(tk.Frame):
 
         self.after(1000, self.check_input_queue)
 
-    def check_license(self):
-        self.log("인증 확인중...")
-        auth_result = authentication.authenticate_device()
-        if auth_result[0] == 2:
-            self.log("인증 확인완료")
-            self.after(600000, self.check_license)
-        else:
-            self.log("인증 실패")
-            showerror(APP_TITLE, "인증에 실패했습니다. 인증상태를 확인하고 다시 실행해주세요.")
-            self.onClose()
-
-    def onClose(self):
-        if self.macro_process:
-            try:
-                self.macro_process_out_queue.put("stop")
-                os.kill(self.macro_pid, signal.SIGTERM)
-            except:
-                pass
-
-        sys.exit()
 
     def start_macro(self):
         if not self.macro_process:
@@ -380,74 +364,11 @@ class MainScreen(tk.Frame):
                         self.platform_file_name.set(platform_file_path.split("/")[-1])
 
 
-class AuthScreen(tk.Frame):
-    def __init__(self, master):
-        self.master = master
-        destroy_child_widgets(self.master)
-        tk.Frame.__init__(self, master)
-        self.pack(expand=YES, fill=BOTH)
-
-        self.userid_input = tk.StringVar()
-        self.userpass_input = tk.StringVar()
-        auth_res = authentication.authenticate_device()
-        if auth_res[0] == 0:
-            tk.Label(self, text="PC 인증 안내").grid(row=0, column=0, columnspan=2)
-            tk.Label(self, text="사용기간이 만료되었습니다. 카톡으로 문의하여 기간연장을 신청하시기 바랍니다.").grid(row=1, column=0, columnspan=2)
-            tk.Label(self, text="만료시간").grid(row=2, column=0)
-            tk.Label(self, text=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(auth_res[3]))).grid(row=2, column=1)
-            tk.Label(self, text="동록된 아이디").grid(row=3, column=0)
-            tk.Label(self, text=auth_res[2]).grid(row=3, column=1)
-            tk.Button(self, text="등록사이트 열기", command=lambda:webbrowser.open("http://ms-rbw.appspot.com")).grid(row=4, column=0, columnspan=2)
-        elif auth_res[0] == 1:
-            tk.Label(self, text="PC 인증 안내").grid(row=0, column=0, columnspan=2)
-            tk.Label(self, text="등록되지 않은 PC입니다. 구매자인 경우 PC등록을 진행해주시고, 비구매자인 경우 카카오톡으로 문의 바랍니다(등록사이트에 링크있음).").grid(row=1, column=0, columnspan=2)
-            tk.Label(self, text="PC이름: %s"%(str(os.getenv("COMPUTERNAME")))).grid(row=2, column=0, columnspan=2)
-            tk.Label(self, text="아이디").grid(row=3, column=0)
-            tk.Entry(self, textvariable=self.userid_input).grid(row=3, column=1)
-            tk.Label(self, text="비밀번호").grid(row=4, column=0)
-            tk.Entry(self, textvariable=self.userpass_input, show="*").grid(row=4, column=1)
-            tk.Button(self, text="등록사이트 열기", command=lambda: webbrowser.open("http://ms-rbw.appspot.com")).grid(row=5,column=0)
-            tk.Button(self, text="로그인 및 기기등록", command=self.onDeviceAuthLogin).grid(row=5, column=1)
-        elif auth_res[0] == 2:
-            MainScreen(self.master, user_id=auth_res[2], expiration_time=auth_res[3])
-
-        elif auth_res[0] == -1:
-            tk.Label(self, text="PC 인증 안내").grid(row=0, column=0, columnspan=2)
-            tk.Label(self, text="PC인증 도중 오류가 발생했습니다. 카카오톡 문의 또는 등록사이트 확인 바랍니다.").grid(row=1, column=0, columnspan=2)
-            tk.Button(self, text="등록사이트 열기", command=lambda: webbrowser.open("http://ms-rbw.appspot.com")).grid(row=2,column=0,columnspan=2)
-
-    def onDeviceAuthLogin(self):
-        if self.userpass_input.get() and self.userid_input.get():
-            id = self.userid_input.get()
-            password = self.userpass_input.get()
-            self.userpass_input.set("")
-            self.userid_input.set("")
-            addpc_res = authentication.add_pc(id, password)
-
-            if addpc_res[0] == 2:
-                showinfo("인증 성공", "인증이 완료되었습니다. 프로그램을 다시 실행해주세요.")
-                sys.exit()
-
-            elif addpc_res[0] == 0:
-                destroy_child_widgets(self)
-                tk.Label(self, text="PC수 한도만큼 PC가 등록되어 PC등록에 실패했습니다.").grid(row=0, column=0)
-                tk.Label(self, text="등록사이트에서 불필요 PC를 해제하거나, PC한도를 증가해야 합니다.").grid(row=1, column=0)
-                tk.Label(self, text="현재 PC 수: %d대"%(addpc_res[1])).grid(row=2, column=0)
-                tk.Button(self, text="등록사이트 열기", command=lambda: webbrowser.open("http://ms-rbw.appspot.com")).grid(row=3, column=0)
-
-            elif addpc_res[0] == 1:
-                showwarning("인증 오류", "아이디 혹은 비밀번호를 확인해주세요")
-
-            elif addpc_res[0] == -1:
-                showwarning("인증 오류", "등록중 오류가 발생했습니다. 카카오톡 문의 또는 등록사이트 확인 바랍니다.")
-        else:
-            showwarning("인증 오류", "아이디와 비밀번호를 입력해주세요")
-
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     root = tk.Tk()
     root.title(APP_TITLE)
     root.resizable(0,0)
     #CreatePlatformFileFrame(root)
-    AuthScreen(root)
+    MainScreen(root, user_id="noauth")
     root.mainloop()
