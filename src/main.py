@@ -9,7 +9,7 @@ fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 default_logger.addHandler(fh)
 try:
-    import multiprocessing, tkinter as tk, time, webbrowser, os, signal, pickle, sys
+    import multiprocessing, tkinter as tk, time, webbrowser, os, signal, pickle, sys, argparse
 
     from tkinter.constants import *
     from tkinter.messagebox import showinfo, showerror, showwarning
@@ -20,8 +20,8 @@ try:
     from screen_processor import MapleScreenCapturer
     from keystate_manager import DEFAULT_KEY_MAP
     from directinput_constants import keysym_map
-    #from macro_script import MacroController
-    from macro_script_astar import MacroControllerAStar as MacroController
+    from macro_script import MacroController
+    #from macro_script_astar import MacroControllerAStar as MacroController
     from keybind_setup_window import SetKeyMap
 except:
     default_logger.exception("error during import")
@@ -65,7 +65,7 @@ def macro_loop(input_queue, output_queue):
                                 break
     except:
         logger.exception("Exeption during loop execution:")
-        output_queue.put(["log", "!! 매크로 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!", ])
+        output_queue.put(["log", "!! 봇 프로세스에서 오류가 발생했습니다. 로그파일을 확인해주세요. !!", ])
         output_queue.put(["exception", "exception"])
 
 
@@ -104,7 +104,7 @@ class MainScreen(tk.Frame):
         self.macro_info_frame = tk.Frame(self, borderwidth=1, relief=GROOVE)
         self.macro_info_frame.pack(side=BOTTOM, anchor=S, expand=YES, fill=BOTH)
 
-        tk.Label(self.macro_info_frame, text="매크로 프로세스 상태:").grid(row=0, column=0)
+        tk.Label(self.macro_info_frame, text="봇 프로세스 상태:").grid(row=0, column=0)
 
         self.macro_process_label = tk.Label(self.macro_info_frame, textvariable=self.macro_pid_infotext, fg="red")
         self.macro_process_label.grid(row=0, column=1, sticky=N+S+E+W)
@@ -116,16 +116,20 @@ class MainScreen(tk.Frame):
         self.platform_file_button = tk.Button(self.macro_info_frame, text="파일 선택하기", command=self.onPlatformFileSelect)
         self.platform_file_button.grid(row=1, column=2, sticky=N+S+E+W)
 
-        self.macro_start_button = tk.Button(self.macro_info_frame, text="매크로 시작", fg="green", command=self.start_macro)
+        self.macro_start_button = tk.Button(self.macro_info_frame, text="봇 시작", fg="green", command=self.start_macro)
         self.macro_start_button.grid(row=2, column=0, sticky=N+S+E+W)
-        self.macro_end_button = tk.Button(self.macro_info_frame, text="매크로 종료", fg="red", command=self.stop_macro, state=DISABLED)
+        self.macro_end_button = tk.Button(self.macro_info_frame, text="봇 종료", fg="red", command=self.stop_macro, state=DISABLED)
         self.macro_end_button.grid(row=2, column=1, sticky=N + S + E + W)
 
         for x in range(5):
             self.macro_info_frame.grid_columnconfigure(x, weight=1)
         self.log("MS-Visionify NoAuth", VERSION)
-        self.log("This version is the GPL compliant version of MS-Visionify")
-        self.log("해당 프로그램 사용시 발생하는 모든 제재사항 및 불이익은 사용자에게 있습니다")
+        self.log("GNU GPL compliant version of MS-Visionify")
+        self.log("해당 프로그램 사용시 계정제재 또는 제한이 가능하고, 책임은 전부 사용자에게 있음을 인지하시기 바랍니다.")
+        self.log("MS-Visionify는 상업적 목표로 제작된 프로그램이 아니기에 무료이며, https://github.com/Dashadower/MS-Visionify 에 모든 소스가 공개되어 있습니다.")
+        self.log("Please be known that using this bot may get your account banned. By using this software, you acknowledge that the developers are not liable for any damages caused to you or your account.")
+        self.log("MS-Visionify was not created for commercial purposes and thus free of charge. The entire source code can be found at https://github.com/Dashadower/MS-Visionify")
+
 
         self.master.protocol("WM_DELETE_WINDOW", self.onClose)
         self.after(500, self.toggle_macro_process)
@@ -147,7 +151,7 @@ class MainScreen(tk.Frame):
             if output[0] == "log":
                 self.log("Process - "+str(output[1]))
             elif output[0] == "stopped":
-                self.log("매크로가 완전히 종료되었습니다.")
+                self.log("봇이 완전히 종료되었습니다.")
             elif output[0] == "exception":
                 self.macro_end_button.configure(state=DISABLED)
                 self.macro_start_button.configure(state=NORMAL)
@@ -158,7 +162,7 @@ class MainScreen(tk.Frame):
                 self.macro_pid_infotext.set("실행되지 않음")
                 self.macro_process_label.configure(fg="red")
                 self.macro_process_toggle_button.configure(text="실행하기")
-                self.log("오류로 인해 매크로 프로세스가 종료되었습니다. 로그파일을 확인해주세요.")
+                self.log("오류로 인해 봇 프로세스가 종료되었습니다. 로그파일을 확인해주세요.")
 
         self.after(1000, self.check_input_queue)
 
@@ -195,7 +199,7 @@ class MainScreen(tk.Frame):
 
     def stop_macro(self):
         self.macro_process_out_queue.put(("stop",))
-        self.log("매크로 중지 요청 완료. 멈출때까지 잠시만 기다려주세요.")
+        self.log("봇 중지 요청 완료. 멈출때까지 잠시만 기다려주세요.")
         self.macro_end_button.configure(state=DISABLED)
         self.macro_start_button.configure(state=NORMAL)
         self.platform_file_button.configure(state=NORMAL)
@@ -223,7 +227,7 @@ class MainScreen(tk.Frame):
             self.macro_process_toggle_button.configure(state=DISABLED)
             self.macro_pid_infotext.set("실행중..")
             self.macro_process_label.configure(fg="orange")
-            self.log("매크로 프로세스 시작중...")
+            self.log("봇 프로세스 시작중...")
             self.macro_process_out_queue = multiprocessing.Queue()
             self.macro_process_in_queue = multiprocessing.Queue()
             p = multiprocessing.Process(target=macro_loop, args=(self.macro_process_out_queue, self.macro_process_in_queue))
@@ -275,9 +279,14 @@ class MainScreen(tk.Frame):
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    parser = argparse.ArgumentParser(description="MS-Visionify, a bot to play KMS MapleStory")
+    parser.add_argument("-title", dest="title", help="change main window title to designated value")
+    args = vars(parser.parse_args())
     root = tk.Tk()
-    root.title(APP_TITLE)
+
+    root.title(args["title"] if args["title"] else APP_TITLE)
     root.resizable(0,0)
+    root.wm_minsize()
     #CreatePlatformFileFrame(root)
     MainScreen(root, user_id="noauth")
     root.mainloop()
