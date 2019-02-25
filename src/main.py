@@ -24,7 +24,7 @@ try:
 except:
     default_logger.exception("error during import")
 
-APP_TITLE = "MS-rbw"
+APP_TITLE = "MS-Visionify"
 VERSION = 1.0
 
 def destroy_child_widgets(parent):
