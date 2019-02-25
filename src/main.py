@@ -20,7 +20,8 @@ try:
     from screen_processor import MapleScreenCapturer
     from keystate_manager import DEFAULT_KEY_MAP
     from directinput_constants import keysym_map
-    from macro_script import MacroController
+    #from macro_script import MacroController
+    from macro_script_astar import MacroControllerAStar as MacroController
     from keybind_setup_window import SetKeyMap
 except:
     default_logger.exception("error during import")

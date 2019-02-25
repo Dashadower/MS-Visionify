@@ -22,7 +22,7 @@ class CustomLogger:
         if self.logger_queue:
             self.logger_queue.put(("log", " ".join([str(x) for x in args])))
 
-class MacroControllerV2(macro_script.MacroController):
+class MacroControllerAStar(macro_script.MacroController):
     """
     This is a new port of MacroController from macro_script with improved pathing. MacroController Used PlatforScan,
     which is an tree search algorithm I implemented, and works at indivisual platform level. However, V2 uses A* path
@@ -163,7 +163,7 @@ class MacroControllerV2(macro_script.MacroController):
         # Once we have selected the platform to move, we can generate a path using A*
         pathlist = self.terrain_analyzer.astar_pathfind((self.player_manager.x, self.player_manager.y), random_platform_coord)
         for mid_coord, method in pathlist:
-            pass
+            print(mid_coord, method)
         # End inter-platform movement
 
         # Other buffs
