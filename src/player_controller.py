@@ -526,7 +526,7 @@ class PlayerController:
                 self.update()
                 cast_yccords = self.y
                 self.key_mgr.single_press(self.keymap["shield_chase"], additional_duration=abs(self.random_duration()))
-                self.key_mgr.single_press(DIK_ALT)
+                """self.key_mgr.single_press(DIK_ALT)
                 self.update()
                 after_cast_ycoords = self.y
                 print("shield chase cast")
@@ -542,7 +542,10 @@ class PlayerController:
                     # No monsters nearby, was not used
                     print("shield chase cast - not casted")
                     time.sleep(0.2)
-                    return 1
+                    return 1"""
+                # Disabled skill usage check for now
+                self.skill_cast_counter += 1
+                return 0
 
     def holy_symbol(self):
         if time.time() - self.last_holy_symbol_time > self.holy_symbol_cooldown + random.randint(0, 14):

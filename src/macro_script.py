@@ -295,6 +295,7 @@ class MacroController:
             self.logger.debug("need to solve rune at platform {0}".format(rune_platform_hash))
             rune_solve_time_offset = (time.time() - self.player_manager.last_rune_solve_time)
             if rune_solve_time_offset >= self.player_manager.rune_cooldown or rune_solve_time_offset <= 30:
+                self.navigate_to_rune_platform()
                 time.sleep(1)
                 self.rune_solver.press_space()
                 time.sleep(1.5)
