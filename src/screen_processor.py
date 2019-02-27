@@ -66,7 +66,6 @@ class MapleScreenCapturer:
             win32gui.SetForegroundWindow(self.hwnd)
             time.sleep(0.1)
         img = ImageGrab.grab(rect)
-        img.save("res.bmp")
         return img
 
     def screen_capture(self,w, h, x=0, y=0, save=True, save_name=''):

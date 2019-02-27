@@ -29,14 +29,9 @@ class MacroControllerAStar(macro_script.MacroController):
         """
         Main event loop for Macro
         Will now use current coordinates and A* to find a new path.
-        :return: loop exit code
+        :return: loop exit code(same as macro_script.py)
         """
-        # Check if MapleStory window is alive
         random.seed((time.time() * 10**4) % 10 **3)
-        if random.randint(1, self.restrict_moonlight_slash_probability) == 2:
-            restrict_moonlight_slash = True
-        else:
-            restrict_moonlight_slash = False
 
         if not self.player_manager.skill_counter_time:
             self.player_manager.skill_counter_time = time.time()
