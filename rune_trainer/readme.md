@@ -30,5 +30,6 @@ Info on scripts on this dir:
 
 ## *Note on dataset*
 
-I did not include the dataset I have personally used, to prevent malicious users getting stuff without effort. If you would like
-to request the dataset, please personally contact me.
+I did not include the dataset I have personally used, to prevent malicious users getting stuff without effort. ~~If you would like
+to request the dataset, please personally contact me.~~ Under no circumstances I will release any more information related
+to botting or the repo itself.
