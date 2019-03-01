@@ -426,13 +426,6 @@ class PathAnalyzer:
                         solution = Solution(platform.hash, key, (platform.end_x, platform.end_y), (platform.end_x, platform.end_y), METHOD_JUMPR, False)
                         platform.solutions.append(solution)
 
-    def subdivide(self):
-        """
-        Subdivides each platform in self.platforms into subplatforms having length of self.subplatform_length
-        :return:
-        """
-        pass
-
     def astar_pathfind(self, start_coord, goal_coords):
         """
         Uses A* pathfinding to calculate a action map from start coord to goal.

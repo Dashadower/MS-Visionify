@@ -71,6 +71,12 @@ class MacroController:
         self.platform_fail_loop_threshold = 10
         # If self.platform_fail_loops is greater than threshold, run unstick()
 
+        self.unstick_attempts = 0
+        # If not on platform, how many times did we attempt unstick()?
+
+        self.unstick_attempts_threshold = 5
+        # If unstick after this amount fails to get us on a known platform, abort abort.
+
         self.logger.debug("%s init finished"%self.__class__.__name__)
 
     def load_and_process_platform_map(self, path):
@@ -116,6 +122,89 @@ class MacroController:
         else:
             return 0
 
+    def find_rune_platform(self):
+        """
+        Checks if a rune exists on a platform and if exists, returns platform hash
+        :return: Platform hash, rune_coord_tuple of platform where the rune is located, else 0, 0 if rune does not exist
+        """
+        self.player_manager.update()
+        rune_coords = self.screen_processor.find_rune_marker()
+        if rune_coords:
+            rune_platform_hash = None
+            for key, platform in self.terrain_analyzer.platforms.items():
+                if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
+                        rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
+                        rune_coords[0] >= platform.start_x and \
+                        rune_coords[0] <= platform.end_x:
+                    rune_platform_hash = key
+            for key, platform in self.terrain_analyzer.oneway_platforms.items():
+                if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
+                        rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
+                        rune_coords[0] >= platform.start_x and \
+                        rune_coords[0] <= platform.end_x:
+                    rune_platform_hash = key
+
+            if rune_platform_hash:
+                return rune_platform_hash, rune_coords
+            else:
+                return 0, 0
+        else:
+            return 0, 0
+
+    def navigate_to_rune_platform(self):
+        """
+        Automatically goes to rune_coords by calling find_rune_platform. Update platform information before calling.
+        :return: 0
+        """
+        rune_platform_hash, rune_coords = self.find_rune_platform()
+        if not rune_platform_hash:
+            return 0
+        if self.current_platform_hash != rune_platform_hash:
+            rune_solutions = self.terrain_analyzer.pathfind(self.current_platform_hash, rune_platform_hash)
+            if rune_solutions:
+                self.logger.debug("paths to rune: %s" % (" ".join(x.method for x in rune_solutions)))
+                for solution in rune_solutions:
+                    if self.player_manager.x < solution.lower_bound[0]:
+                        # We are left of solution bounds.
+                        self.player_manager.horizontal_move_goal(solution.lower_bound[0])
+                    else:
+                        # We are right of solution bounds
+                        self.player_manager.horizontal_move_goal(solution.upper_bound[0])
+                    time.sleep(1)
+                    rune_movement_type = solution.method
+                    if rune_movement_type == ta.METHOD_DROP:
+                        self.player_manager.drop()
+                        time.sleep(1)
+                    elif rune_movement_type == ta.METHOD_JUMPL:
+                        self.player_manager.jumpl_double()
+                        time.sleep(0.5)
+                    elif rune_movement_type == ta.METHOD_JUMPR:
+                        self.player_manager.jumpr_double()
+                        time.sleep(0.5)
+                    elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
+                        self.player_manager.dbljump_max()
+                        time.sleep(1)
+                    elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
+                        self.player_manager.dbljump_half()
+                        time.sleep(1)
+                time.sleep(0.5)
+            else:
+                self.logger.debug("could not generate path to rune platform %s from starting platform %s"%(rune_platform_hash, self.current_platform_hash))
+        return 0
+
+    def log_skill_usage_statistics(self):
+        """
+        checks self.player_manager.skill_cast_time and count and logs them if time is greater than threshold
+        :return: None
+        """
+        if not self.player_manager.skill_counter_time:
+            self.player_manager.skill_counter_time = time.time()
+        if time.time() - self.player_manager.skill_counter_time > 60:
+
+            self.logger.debug("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
+            self.player_manager.skill_cast_counter = 0
+            self.player_manager.skill_counter_time = time.time()
+
     def loop(self):
         """
         Main event loop for Macro
@@ -124,6 +213,10 @@ class MacroController:
         platform movement and solution flagging is done on the loop call succeeding the loop call where the actual
         move ment is made. self.goal_platform is used for such purpose.
         :return: loop exit code
+        exit code information:
+            0: all good
+            -1: problem in image processing
+            -2: problem in navigation/pathing
         """
         # Check if MapleStory window is alive
         random.seed((time.time() * 10**4) % 10 **3)
@@ -132,13 +225,8 @@ class MacroController:
         else:
             restrict_moonlight_slash = False
 
-        if not self.player_manager.skill_counter_time:
-            self.player_manager.skill_counter_time = time.time()
-        if time.time() - self.player_manager.skill_counter_time > 60:
-            print("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
-            self.logger.debug("skills casted in duration %d: %d skill/s: %f"%(int(time.time() - self.player_manager.skill_counter_time), self.player_manager.skill_cast_counter, self.player_manager.skill_cast_counter/int(time.time() - self.player_manager.skill_counter_time)))
-            self.player_manager.skill_cast_counter = 0
-            self.player_manager.skill_counter_time = time.time()
+        self.log_skill_usage_statistics()
+
         if not self.screen_capturer.ms_get_screen_hwnd():
             self.logger.debug("Failed to get MS screen rect")
             self.abort()
@@ -150,13 +238,10 @@ class MacroController:
         # Update Constants
         player_minimap_pos = self.screen_processor.find_player_minimap_marker()
         if not player_minimap_pos:
-            return -2
+            return -1
         self.player_manager.update(player_minimap_pos[0], player_minimap_pos[1])
 
-
-
         # Placeholder for Lie Detector Detector (sounds weird)
-
         # End Placeholder
 
         # Check if player is on platform
@@ -168,12 +253,17 @@ class MacroController:
             self.platform_fail_loops += 1
             if self.platform_fail_loops >= self.platform_fail_loop_threshold:
                 self.logger.debug("stuck. attempting unstick()...")
+                self.unstick_attempts += 1
                 self.unstick()
-            return -1
+            if self.unstick_attempts >= self.unstick_attempts_threshold:
+                self.logger.debug("unstick() threshold reached. sending error code..")
+                return -2
+            else:
+                return 0
         else:
             self.platform_fail_loops = 0
+            self.unstick_attempts = 0
             self.current_platform_hash = get_current_platform
-
 
         # Update navigation dictionary with last_platform and current_platform
         if self.goal_platform_hash and self.current_platform_hash == self.goal_platform_hash:
@@ -198,81 +288,28 @@ class MacroController:
             self.navmap_reset_type *= -1
             self.logger.debug("navigation map reset and randomized at loop #%d"%(self.loop_count))
 
-
-        # Placeholder for Rune Detector
+        # Rune Detector
         self.player_manager.update()
-        rune_coords = self.screen_processor.find_rune_marker()
-        if rune_coords:
-            self.logger.debug("need to solve rune at {0}".format(rune_coords))
+        rune_platform_hash, rune_coords = self.find_rune_platform()
+        if rune_platform_hash:
+            self.logger.debug("need to solve rune at platform {0}".format(rune_platform_hash))
             rune_solve_time_offset = (time.time() - self.player_manager.last_rune_solve_time)
             if rune_solve_time_offset >= self.player_manager.rune_cooldown or rune_solve_time_offset <= 30:
-                rune_platform_hash = None
-                for key, platform in self.terrain_analyzer.platforms.items():
-                    if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
-                            rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
-                            rune_coords[0] >= platform.start_x and \
-                            rune_coords[0] <= platform.end_x:
-                        rune_platform_hash = key
-                for key, platform in self.terrain_analyzer.oneway_platforms.items():
-                    if rune_coords[1] >= platform.start_y - self.rune_platform_offset and \
-                            rune_coords[1] <= platform.start_y + self.rune_platform_offset and \
-                            rune_coords[0] >= platform.start_x and \
-                            rune_coords[0] <= platform.end_x:
-                        rune_platform_hash = key
+                self.navigate_to_rune_platform()
+                time.sleep(1)
+                self.rune_solver.press_space()
+                time.sleep(1.5)
+                solve_result = self.rune_solver.solve_auto()
+                self.logger.debug("rune_solver.solve_auto results: %d" % (solve_result))
+                if solve_result == -1:
+                    self.logger.debug("rune_solver.solve_auto failed to solve")
+                    for x in range(4):
+                        self.keyhandler.single_press(dc.DIK_LEFT)
 
-                if rune_platform_hash:
-                    self.logger.debug("rune on platform %s"%(rune_platform_hash))
-                    if self.current_platform_hash != rune_platform_hash:
-                        rune_solutions = self.terrain_analyzer.pathfind(self.current_platform_hash, rune_platform_hash)
-                        if rune_solutions:
-                            self.logger.debug("paths to rune: %s" % (" ".join(x.method for x in rune_solutions)))
-                            print(" ".join(x.method for x in rune_solutions))
-                            for solution in rune_solutions:
-                                if self.player_manager.x < solution.lower_bound[0]:
-                                    # We are left of solution bounds.
-                                    self.player_manager.horizontal_move_goal(solution.lower_bound[0])
-                                else:
-                                    # We are right of solution bounds
-                                    self.player_manager.horizontal_move_goal(solution.upper_bound[0])
-                                time.sleep(1)
-                                rune_movement_type = solution.method
-                                if rune_movement_type == ta.METHOD_DROP:
-                                    self.player_manager.drop()
-                                    time.sleep(1)
-                                elif rune_movement_type == ta.METHOD_JUMPL:
-                                    self.player_manager.jumpl_double()
-                                    time.sleep(0.5)
-                                elif rune_movement_type == ta.METHOD_JUMPR:
-                                    self.player_manager.jumpr_double()
-                                    time.sleep(0.5)
-                                elif rune_movement_type == ta.METHOD_DBLJMP_MAX:
-                                    self.player_manager.dbljump_max()
-                                    time.sleep(1)
-                                elif rune_movement_type == ta.METHOD_DBLJMP_HALF:
-                                    self.player_manager.dbljump_half()
-                                    time.sleep(1)
-
-                            time.sleep(0.5)
-
-                    self.player_manager.update()
-                    if self.player_manager.x < rune_coords[0]-1 or self.player_manager.x > rune_coords[0]+1:
-                        self.player_manager.horizontal_move_goal(rune_coords[0])
-
-                    time.sleep(1)
-                    self.rune_solver.press_space()
-                    time.sleep(1.5)
-                    solve_result = self.rune_solver.solve_auto()
-                    self.logger.debug("rune_solver.solve_auto results: %d" % (solve_result))
-                    if solve_result == -1:
-                        self.logger.debug("rune_solver.solve_auto failed to solve")
-                        for x in range(4):
-                            self.keyhandler.single_press(dc.DIK_LEFT)
-
-                    self.player_manager.last_rune_solve_time = time.time()
-                    self.current_platform_hash = rune_platform_hash
-                    time.sleep(1)
-
-        # End Placeholder
+                self.player_manager.last_rune_solve_time = time.time()
+                self.current_platform_hash = rune_platform_hash
+                time.sleep(0.5)
+        # End Rune Detector
 
         # We are on a platform. find an optimal way to clear platform.
         # If we know our next platform destination, we can make our path even more efficient
@@ -400,13 +437,9 @@ class MacroController:
         if self.find_current_platform():
             return 0
 
-
     def abort(self):
+        self.keyhandler.reset()
         self.logger.debug("aborted")
         if self.log_queue:
             self.log_queue.put(["stopped", None])
-        self.keyhandler.reset()
-
-
-
 

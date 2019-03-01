@@ -151,7 +151,7 @@ class MainScreen(tk.Frame):
             if output[0] == "log":
                 self.log("Process - "+str(output[1]))
             elif output[0] == "stopped":
-                self.log("봇이 완전히 종료되었습니다.")
+                self.log("봇 프로세스가 종료되었습니다.")
             elif output[0] == "exception":
                 self.macro_end_button.configure(state=DISABLED)
                 self.macro_start_button.configure(state=NORMAL)
