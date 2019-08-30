@@ -12,10 +12,7 @@ source so anyone can bot the game. Therefore, I have decided that **no further d
 However, I will not take any of the source down or the repo itself. Although a short-lived project, it provided valuable
 experience in image processing and automation.
 
-KR: MS-Visionify 프로젝트는 "사람을 완전히 모방할수 있는 능력을 가진 봇"을 개발하자는 취지로 시작되었습니다. 개발 시작부터 이런
-류의 프로그램은 게임의 이용 약관을 위반한다는 것을 알고 있음에도 불구하고, 계속 개발을 하게 되었습니다. 안타깝게도, 본래의 취지와는 반대로
-상업적인 목표로 남용되기 시작되었습니다. 저는 이 프로그램이 대중화되었을때 메이플스토리에 끼치게 될 영향에 대해 다시 생각해보게 되었고, 결론적으로
-개발을 계속하는 것과 누구나 사용할수 있게끔 소스를 공개하는 행동은 부정적인 영향밖에 없을거라고 생각했습니다. **MS-Visionify의 개발을 중지하기로 결정했습니다.**
+개발을 계속하는 것과 누구나 사용할수 있게끔 소스를 공개하는 행동은 부정적인 영향밖에 없을거라고 생각했습니다. MS-Visionify의 개발을 중지하기로 결정했습니다.
 다만 현재까지 공개된 소스와 repository 자체는 삭제하지 않을 예정입니다.
 
 ### *How does it work?*
